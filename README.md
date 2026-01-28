@@ -1,5 +1,22 @@
 # Jatin Patil - AI/ML Engineer & Full Stack Developer Portfolio
 
+## 👤 About Me
+
+**Jatin Narayanbhai Patil** - A passionate BE Computer Engineering student at UPL University of Sustainable Technology (Sem 4).
+
+Specializing in:
+
+- 🤖 **AI/ML Engineering** - Intelligent systems and data science
+- 💻 **Full Stack Development** - React, Node.js, Python
+- 🚀 **Innovation** - Building tomorrow's solutions
+
+### 🔗 Connect with Me
+
+- **GitHub:** [jatin8469](https://github.com/jatin8469)
+- **LinkedIn:** [jatin-patil-b75146376](https://linkedin.com/in/jatin-patil-b75146376)
+- **Email:** [jatinpatil2233@gmail.com](mailto:jatinpatil2233@gmail.com)
+- **Twitter:** [@jatin8469](https://twitter.com/jatin8469)
+
 ## Project Overview
 
 This is a modern, interactive portfolio website showcasing projects, skills, education, and experience in AI/ML engineering and full-stack development.
@@ -16,10 +33,10 @@ Follow these steps:
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+git clone https://github.com/jatin8469/my-portfolio.git
 
 # Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+cd my-portfolio
 
 # Step 3: Install the necessary dependencies.
 npm i
