@@ -1,5 +1,5 @@
 {
-  "projectName": "jatinpatil",
+  "projectName": "jatin_patil",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
