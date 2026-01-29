@@ -19,7 +19,7 @@ const About = () => {
       <div className="container relative z-10 px-6">
         <ScrollReveal>
           <SectionHeading
-            label="01. About Me"
+            label="02. About Me"
             title="Know Who I Am"
             description="Passionate about transforming ideas into intelligent, scalable solutions"
           />

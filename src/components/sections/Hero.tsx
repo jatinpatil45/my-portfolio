@@ -2,6 +2,8 @@ import { motion } from 'framer-motion';
 import { Github, Linkedin, Mail, ChevronDown } from 'lucide-react';
 import TypingAnimation from '../TypingAnimation';
 import TiltCard from '../TiltCard';
+import ScrollReveal from '../ScrollReveal';
+import SectionHeading from '../SectionHeading';
 
 const Hero = () => {
   const socialLinks = [
@@ -20,6 +22,14 @@ const Hero = () => {
       <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-secondary/20 rounded-full blur-[128px] animate-pulse" style={{ animationDelay: '1s' }} />
 
       <div className="container relative z-10 px-6">
+        <ScrollReveal>
+          <SectionHeading
+            label="01. Home"
+            title=""
+            description=""
+          />
+        </ScrollReveal>
+
         <TiltCard className="max-w-4xl mx-auto" tiltAmount={5}>
           <motion.div
             initial={{ opacity: 0, y: 50 }}

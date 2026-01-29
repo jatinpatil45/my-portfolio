@@ -71,7 +71,7 @@ const Projects = () => {
       <div className="container relative z-10 px-6">
         <ScrollReveal>
           <SectionHeading
-            label="04. Projects"
+            label="05. Projects"
             title="Featured Work"
             description="A showcase of projects spanning AI/ML, full-stack development, and data science"
           />

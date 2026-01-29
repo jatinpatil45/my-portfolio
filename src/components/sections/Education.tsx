@@ -11,7 +11,7 @@ const Education = () => {
       institution: 'UPL University of Sustainable Technology',
       year: '2023 - Present (2nd Year)',
       status: 'In Progress',
-      highlight: 'Specializing in AI/ML',
+      highlight: 'Specializing in Data Science',
       icon: '🎓',
     },
     {
@@ -19,16 +19,16 @@ const Education = () => {
       field: 'Science Stream',
       institution: 'GNFC Narmada Vidhyalay',
       year: 'Completed',
-      status: '62%',
+      status: '62 Percentile',
       highlight: 'Foundation in Sciences',
       icon: '📚',
     },
     {
       degree: 'Secondary (10th)',
       field: 'General Education',
-      institution: 'GNFC',
+      institution: 'GNFC Narmada Vidhyalay',
       year: 'Completed',
-      status: '72% Marks | 82.53 Percentile',
+      status: '82.53 Percentile',
       highlight: 'Strong Academic Foundation',
       icon: '🏆',
     },
@@ -42,7 +42,7 @@ const Education = () => {
       <div className="container relative z-10 px-6">
         <ScrollReveal>
           <SectionHeading
-            label="02. Education"
+            label="03. Education"
             title="Academic Journey"
             description="Building a strong foundation in computer science and engineering"
           />

@@ -39,7 +39,7 @@ const Skills = () => {
       <div className="container relative z-10 px-6">
         <ScrollReveal>
           <SectionHeading
-            label="03. Skills"
+            label="04. Skills"
             title="Tech Arsenal"
             description="A diverse toolkit spanning from low-level programming to cutting-edge AI"
           />
