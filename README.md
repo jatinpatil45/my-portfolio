@@ -72,3 +72,16 @@ This project is built with:
 ## How can I deploy this project?
 
 You can deploy this project to various platforms like Vercel, Netlify, GitHub Pages, or any static hosting service. Simply build the project with `npm run build` and follow the hosting platform's deployment instructions.
+
+---
+
+### 📜 New Certificate
+
+A new certificate has been added to the site. It uses the image `public/images/certificate.png` and displays the following details:
+
+- **Name:** Jatin Narayanbhai Patil (automatically implied on the image)
+- **Course:** The Ultimate Job Ready Data Science Course
+- **Date:** February 20, 2026
+- **Certificate ID:** CWH-THE-ULTIMATE-JOB-READY-DATA-SCIENCE-COURSE-FHHg0SiZ
+
+Replace the placeholder PNG with the actual file if you want to see the real certificate in the portfolio. Edit `src/components/sections/Certifications.tsx` to modify text or add further credentials.
