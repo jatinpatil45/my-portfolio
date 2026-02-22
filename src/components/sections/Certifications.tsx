@@ -10,6 +10,8 @@ interface CertificationCard {
   organization: string;
   image: string;
   alt: string;
+  date?: string;
+  certificateId?: string;
 }
 
 const Certifications = () => {
@@ -56,6 +58,15 @@ const Certifications = () => {
       organization: 'Microsoft Learn',
       image: '/images/cert-ai.jpg',
       alt: 'AI Fundamentals Certificate',
+    },
+    {
+      id: 7,
+      title: 'The Ultimate Job Ready Data Science Course',
+      organization: 'CodeWithHarry',
+      image: '/images/certificate.png',
+      alt: 'Data Science Course Completion Certificate',
+      date: 'February 20, 2026',
+      certificateId: 'CWH-THE-ULTIMATE-JOB-READY-DATA-SCIENCE-COURSE-FHHg0SiZ',
     },
   ];
 
@@ -219,7 +230,22 @@ const Certifications = () => {
                             Issued by: <span className="text-foreground font-semibold">{selectedCert.organization}</span>
                           </p>
                         </div>
-
+                        {selectedCert.date && (
+                          <div className="flex items-center gap-3">
+                            <span className="inline-block w-3 h-3 rounded-full bg-primary" />
+                            <p className="text-lg text-muted-foreground font-mono">
+                              Date: <span className="text-foreground font-semibold">{selectedCert.date}</span>
+                            </p>
+                          </div>
+                        )}
+                        {selectedCert.certificateId && (
+                          <div className="flex items-center gap-3">
+                            <span className="inline-block w-3 h-3 rounded-full bg-primary" />
+                            <p className="text-sm text-muted-foreground font-mono">
+                              ID: <span className="text-foreground font-semibold">{selectedCert.certificateId}</span>
+                            </p>
+                          </div>
+                        )}
                         <div className="pt-4 border-t border-border/50">
                           <p className="text-sm text-muted-foreground mb-3">
                             Click the image to view or download the full certificate.

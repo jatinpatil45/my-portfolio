@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -65,18 +66,22 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Resume Button */}
-          <motion.a
-            href="mailto:jatinpatil2233@gmail.com"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-            className="hidden md:inline-flex px-5 py-2 text-sm font-mono text-primary border border-primary rounded-lg hover:bg-primary/10 transition-all duration-300"
-          >
-            Get In Touch
-          </motion.a>
+          <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle />
+
+            {/* Resume Button */}
+            <motion.a
+              href="mailto:jatinpatil2233@gmail.com"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+              className="hidden md:inline-flex px-5 py-2 text-sm font-mono text-primary border border-primary rounded-lg hover:bg-primary/10 transition-all duration-300"
+            >
+              Get In Touch
+            </motion.a>
+          </div>
 
           {/* Mobile Menu Button */}
           <motion.button
@@ -119,15 +124,18 @@ const Navbar = () => {
                     {link.label}
                   </motion.a>
                 ))}
-                <motion.a
-                  href="mailto:jatinpatil2233@gmail.com"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.7 }}
-                  className="mt-4 px-6 py-3 text-center font-mono text-primary border border-primary rounded-lg"
-                >
-                  Get In Touch
-                </motion.a>
+                <div className="mt-4 flex items-center gap-3">
+                  <ThemeToggle />
+                  <motion.a
+                    href="mailto:jatinpatil2233@gmail.com"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.7 }}
+                    className="flex-1 px-6 py-3 text-center font-mono text-primary border border-primary rounded-lg"
+                  >
+                    Get In Touch
+                  </motion.a>
+                </div>
               </nav>
             </div>
           </motion.div>

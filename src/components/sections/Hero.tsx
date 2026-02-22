@@ -54,8 +54,8 @@ const Hero = () => {
               transition={{ delay: 0.5, duration: 0.6 }}
               className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6"
             >
-              <span className="text-foreground">Jatin </span>
-              <span className="text-gradient">Patil</span>
+              <span className="text-gradient">Jatin</span>
+              <span className="text-gradient"> Patil</span>
             </motion.h1>
 
             {/* Tagline with typing effect */}

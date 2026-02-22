@@ -56,6 +56,52 @@
   }
 }
 
+/* Light theme overrides */
+.light {
+  /* Surface */
+  --background: 210 20% 98%;
+  --foreground: 220 14% 10%;
+
+  --card: 210 20% 100%;
+  --card-foreground: 220 14% 10%;
+
+  --popover: 210 22% 100%;
+  --popover-foreground: 220 14% 10%;
+
+  /* Accents (keep brand colors consistent) */
+  --primary: 187 100% 42%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 270 80% 60%;
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 210 16% 96%;
+  --muted-foreground: 215 20% 45%;
+
+  --accent: 270 80% 60%;
+  --accent-foreground: 220 14% 10%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 210 14% 90%;
+  --input: 210 14% 90%;
+  --ring: 187 100% 42%;
+
+  --radius: 0.75rem;
+
+  /* Custom neon tokens retain hue but lower saturation for light background */
+  --neon-cyan: 187 90% 35%;
+  --neon-purple: 270 70% 50%;
+  --neon-pink: 330 70% 50%;
+
+  /* Gradients adapted for light */
+  --gradient-primary: linear-gradient(135deg, hsl(187 100% 42%), hsl(270 80% 60%));
+  --gradient-text: linear-gradient(90deg, hsl(187 100% 45%), hsl(270 80% 60%), hsl(330 85% 55%));
+  --gradient-card: linear-gradient(145deg, hsl(210 20% 100%), hsl(210 18% 98%));
+  --gradient-border: linear-gradient(135deg, hsl(187 100% 42% / 0.15), hsl(270 80% 60% / 0.15));
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -68,11 +114,19 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Space Grotesk', system-ui, sans-serif;
+    transition: background-color .2s ease, color .2s ease, border-color .2s ease;
   }
 
   ::selection {
     background: hsl(var(--primary) / 0.3);
     color: hsl(var(--foreground));
+  }
+
+  /* Accessible focus styles */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
+    border-radius: 6px;
   }
 }
 
