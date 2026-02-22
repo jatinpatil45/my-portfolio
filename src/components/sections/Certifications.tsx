@@ -12,6 +12,8 @@ interface CertificationCard {
   alt: string;
   date?: string;
   certificateId?: string;
+  verificationUrl?: string;
+  duration?: string;
 }
 
 const Certifications = () => {
@@ -33,34 +35,56 @@ const Certifications = () => {
     },
     {
       id: 3,
+      title: 'Java Bootcamp',
+      organization: 'LetsUpgrade',
+      image: '/images/cert-java-bootcamp.png',
+      alt: 'Java Bootcamp Certificate',
+      date: 'February 22, 2026',
+      certificateId: 'LUEJAVAFEB126163',
+      verificationUrl: 'https://www.letsupgrade.in/verify',
+      duration: 'Feb 19–21, 2026 (3 Days)',
+    },
+    {
+      id: 4,
+      title: 'JavaScript Bootcamp',
+      organization: 'LetsUpgrade',
+      image: '/images/cert-javascript-bootcamp.png',
+      alt: 'JavaScript Bootcamp Certificate',
+      date: 'February 22, 2026',
+      certificateId: 'LUEJSFEB126199',
+      verificationUrl: 'https://www.letsupgrade.in/verify',
+      duration: 'Feb 11–13, 2026 (3 Days)',
+    },
+    {
+      id: 5,
       title: 'Data Science Professional',
       organization: 'IBM',
       image: '/images/cert-ds.jpg',
       alt: 'Data Science Professional Certificate',
     },
     {
-      id: 4,
+      id: 6,
       title: 'Cloud Architecture Essentials',
       organization: 'AWS',
       image: '/images/cert-cloud.jpg',
       alt: 'Cloud Architecture Certificate',
     },
     {
-      id: 5,
+      id: 7,
       title: 'Full Stack Development',
       organization: 'Udemy',
       image: '/images/cert-fullstack.jpg',
       alt: 'Full Stack Development Certificate',
     },
     {
-      id: 6,
+      id: 8,
       title: 'Artificial Intelligence Fundamentals',
       organization: 'Microsoft Learn',
       image: '/images/cert-ai.jpg',
       alt: 'AI Fundamentals Certificate',
     },
     {
-      id: 7,
+      id: 9,
       title: 'The Ultimate Job Ready Data Science Course',
       organization: 'CodeWithHarry',
       image: '/images/certificate.png',
@@ -238,11 +262,27 @@ const Certifications = () => {
                             </p>
                           </div>
                         )}
+                        {selectedCert.duration && (
+                          <div className="flex items-center gap-3">
+                            <span className="inline-block w-3 h-3 rounded-full bg-primary" />
+                            <p className="text-sm text-muted-foreground font-mono">
+                              Duration: <span className="text-foreground font-semibold">{selectedCert.duration}</span>
+                            </p>
+                          </div>
+                        )}
                         {selectedCert.certificateId && (
                           <div className="flex items-center gap-3">
                             <span className="inline-block w-3 h-3 rounded-full bg-primary" />
                             <p className="text-sm text-muted-foreground font-mono">
                               ID: <span className="text-foreground font-semibold">{selectedCert.certificateId}</span>
+                            </p>
+                          </div>
+                        )}
+                        {selectedCert.verificationUrl && (
+                          <div className="flex items-center gap-3">
+                            <span className="inline-block w-3 h-3 rounded-full bg-primary" />
+                            <p className="text-sm text-muted-foreground font-mono">
+                              Verify: <a href={selectedCert.verificationUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold break-all">{selectedCert.verificationUrl}</a>
                             </p>
                           </div>
                         )}
