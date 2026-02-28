@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import ScrollReveal from '../ScrollReveal';
 import SectionHeading from '../SectionHeading';
+import ScrollingLogos from '../ScrollingLogos';
 
 const Skills = () => {
   const skillCategories = [
@@ -8,25 +9,54 @@ const Skills = () => {
       title: 'Languages',
       icon: '💻',
       color: 'primary',
-      skills: ['C', 'C++', 'Python', 'Java', 'C#', 'JavaScript', 'TypeScript'],
+      logos: [
+        { name: 'C', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/c/c-original.svg' },
+        { name: 'C++', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-original.svg' },
+        { name: 'Python', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/python/python-original.svg' },
+        { name: 'Java', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/java/java-original.svg' },
+        { name: 'C#', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/csharp/csharp-original.svg' },
+        { name: 'JavaScript', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/javascript/javascript-original.svg' },
+        { name: 'TypeScript', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-original.svg' },
+      ],
     },
     {
       title: 'Web Development',
       icon: '🌐',
       color: 'secondary',
-      skills: ['HTML5', 'CSS3', 'React', 'Angular', 'Node.js', 'Express', 'REST APIs'],
+      logos: [
+        { name: 'HTML5', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg' },
+        { name: 'CSS3', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg' },
+        { name: 'React', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/react/react-original.svg' },
+        { name: 'Angular', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/angularjs/angularjs-original.svg' },
+        { name: 'Node.js', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nodejs/nodejs-original.svg' },
+        { name: 'Express', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/express/express-original.svg', invertDark: true },
+      ],
     },
     {
       title: 'Data Science & AI',
       icon: '🤖',
       color: 'accent',
-      skills: ['NumPy', 'Pandas', 'Scikit-Learn', 'TensorFlow', 'SQL', 'DBMS', 'Data Visualization'],
+      logos: [
+        { name: 'NumPy', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/numpy/numpy-original.svg' },
+        { name: 'Pandas', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/pandas/pandas-original.svg' },
+        { name: 'Scikit-Learn', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/scikitlearn/scikitlearn-original.svg' },
+        { name: 'TensorFlow', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/tensorflow/tensorflow-original.svg' },
+        { name: 'SQL', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/azuresqldatabase/azuresqldatabase-original.svg' },
+      ],
     },
     {
       title: 'Tools & Platforms',
       icon: '🛠️',
       color: 'primary',
-      skills: ['Git', 'GitHub', 'VS Code', 'Jupyter', 'Docker', 'Linux', 'Figma'],
+      logos: [
+        { name: 'Git', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/git/git-original.svg' },
+        { name: 'GitHub', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/github/github-original.svg', invertDark: true },
+        { name: 'VS Code', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg' },
+        { name: 'Jupyter', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/jupyter/jupyter-original.svg' },
+        { name: 'Docker', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/docker/docker-original.svg' },
+        { name: 'Linux', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/linux/linux-original.svg' },
+        { name: 'Figma', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/figma/figma-original.svg' },
+      ],
     },
   ];
 
@@ -61,33 +91,8 @@ const Skills = () => {
                   <h3 className="text-xl font-bold text-foreground">{category.title}</h3>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
-                  {category.skills.map((skill, skillIndex) => (
-                    <motion.span
-                      key={skill}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.3 + skillIndex * 0.05 }}
-                      viewport={{ once: true }}
-                      whileHover={{ 
-                        scale: 1.1,
-                        boxShadow: category.color === 'primary' 
-                          ? '0 0 20px hsl(187 100% 42% / 0.5)'
-                          : '0 0 20px hsl(270 80% 60% / 0.5)'
-                      }}
-                      className={`
-                        px-4 py-2 text-sm font-mono rounded-lg cursor-default
-                        transition-all duration-300
-                        ${category.color === 'primary' 
-                          ? 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20' 
-                          : 'bg-secondary/10 text-secondary border border-secondary/30 hover:bg-secondary/20'
-                        }
-                      `}
-                    >
-                      {skill}
-                    </motion.span>
-                  ))}
-                </div>
+                {/* Render scrolling logos for ALL categories */}
+                <ScrollingLogos logos={category.logos} />
               </motion.div>
             </ScrollReveal>
           ))}

@@ -32,8 +32,14 @@ const ParticleBackground = () => {
 
     const createParticles = () => {
       particles = [];
-      const particleCount = Math.floor((canvas.width * canvas.height) / 15000);
-      
+      const isMobile = window.innerWidth <= 768;
+      // Drastically reduce particles on mobile devices
+      const divisor = isMobile ? 30000 : 15000;
+      const maxParticles = isMobile ? 40 : 120;
+
+      let particleCount = Math.floor((canvas.width * canvas.height) / divisor);
+      particleCount = Math.min(particleCount, maxParticles);
+
       for (let i = 0; i < particleCount; i++) {
         particles.push({
           x: Math.random() * canvas.width,
@@ -62,12 +68,19 @@ const ParticleBackground = () => {
         if (particle.y > canvas.height) particle.y = 0;
 
         // Draw particle with glow
+        const isMobile = window.innerWidth <= 768;
+
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fillStyle = particle.color;
         ctx.globalAlpha = particle.opacity;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = particle.color;
+
+        // Disable expensive shadow blur on mobile devices
+        if (!isMobile) {
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = particle.color;
+        }
+
         ctx.fill();
         ctx.globalAlpha = 1;
         ctx.shadowBlur = 0;
