@@ -18,10 +18,17 @@ const Navbar = () => {
   ];
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setIsScrolled(window.scrollY > 50);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -31,9 +38,8 @@ const Navbar = () => {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled ? 'glass-card py-3' : 'py-6'
-        }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'glass-card py-3' : 'py-6'
+          }`}
       >
         <div className="container px-6 flex items-center justify-between">
           {/* Logo */}
@@ -104,7 +110,7 @@ const Navbar = () => {
             transition={{ type: 'spring', damping: 20 }}
             className="fixed inset-0 z-40 md:hidden"
           >
-            <div 
+            <div
               className="absolute inset-0 bg-background/80 backdrop-blur-lg"
               onClick={() => setIsMobileMenuOpen(false)}
             />

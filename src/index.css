@@ -42,7 +42,7 @@
     --neon-pink: 330 85% 60%;
     --dark-slate: 240 15% 4%;
     --dark-card: 240 15% 8%;
-    
+
     /* Glow effects */
     --glow-cyan: 0 0 20px hsl(187 100% 42% / 0.5), 0 0 40px hsl(187 100% 42% / 0.3);
     --glow-purple: 0 0 20px hsl(270 80% 60% / 0.5), 0 0 40px hsl(270 80% 60% / 0.3);
@@ -156,7 +156,8 @@
 
   .glass-card {
     background: hsl(var(--card) / 0.6);
-    -webkit-backdrop-filter: blur(20px); /* Safari support */
+    -webkit-backdrop-filter: blur(20px);
+    /* Safari support */
     backdrop-filter: blur(20px);
     border: 1px solid hsl(var(--border) / 0.5);
   }
@@ -173,7 +174,8 @@
     border-radius: inherit;
     background: var(--gradient-border);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); /* Firefox support */
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    /* Firefox support */
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
@@ -191,14 +193,29 @@
   }
 
   @keyframes blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
+
+    0%,
+    50% {
+      opacity: 1;
+    }
+
+    51%,
+    100% {
+      opacity: 0;
+    }
   }
 
   /* Floating animation */
   @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
   }
 
   .animate-float {
@@ -207,10 +224,13 @@
 
   /* Pulse glow animation */
   @keyframes pulse-glow {
-    0%, 100% { 
+
+    0%,
+    100% {
       box-shadow: 0 0 20px hsl(187 100% 42% / 0.3);
     }
-    50% { 
+
+    50% {
       box-shadow: 0 0 40px hsl(187 100% 42% / 0.6), 0 0 60px hsl(270 80% 60% / 0.3);
     }
   }
@@ -221,7 +241,7 @@
 
   /* Grid background pattern */
   .bg-grid {
-    background-image: 
+    background-image:
       linear-gradient(hsl(var(--border) / 0.3) 1px, transparent 1px),
       linear-gradient(90deg, hsl(var(--border) / 0.3) 1px, transparent 1px);
     background-size: 50px 50px;
@@ -235,5 +255,22 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
     opacity: 0.03;
     pointer-events: none;
+  }
+
+  /* Mobile Performance Overrides */
+  @media (max-width: 768px) {
+    .glass-card {
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+      background: hsl(var(--card) / 0.8);
+    }
+
+    .noise-overlay::before {
+      display: none;
+    }
+
+    .animate-pulse-glow {
+      animation: none;
+    }
   }
 }

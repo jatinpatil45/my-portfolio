@@ -14,10 +14,10 @@ const Index = () => {
     <div className="relative min-h-screen bg-background overflow-x-hidden noise-overlay">
       {/* Particle Background */}
       <ParticleBackground />
-      
+
       {/* Navigation */}
       <Navbar />
-      
+
       {/* Main Content */}
       <main className="relative z-10">
         <Hero />
@@ -28,7 +28,7 @@ const Index = () => {
         <Certifications />
         <Contact />
       </main>
-      
+
       {/* Footer */}
       <Footer />
     </div>

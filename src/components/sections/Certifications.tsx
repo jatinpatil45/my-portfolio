@@ -55,34 +55,8 @@ const Certifications = () => {
       verificationUrl: 'https://www.letsupgrade.in/verify',
       duration: 'Feb 11–13, 2026 (3 Days)',
     },
-    {
-      id: 5,
-      title: 'Data Science Professional',
-      organization: 'IBM',
-      image: '/images/cert-ds.jpg',
-      alt: 'Data Science Professional Certificate',
-    },
-    {
-      id: 6,
-      title: 'Cloud Architecture Essentials',
-      organization: 'AWS',
-      image: '/images/cert-cloud.jpg',
-      alt: 'Cloud Architecture Certificate',
-    },
-    {
-      id: 7,
-      title: 'Full Stack Development',
-      organization: 'Udemy',
-      image: '/images/cert-fullstack.jpg',
-      alt: 'Full Stack Development Certificate',
-    },
-    {
-      id: 8,
-      title: 'Artificial Intelligence Fundamentals',
-      organization: 'Microsoft Learn',
-      image: '/images/cert-ai.jpg',
-      alt: 'AI Fundamentals Certificate',
-    },
+
+
     {
       id: 9,
       title: 'The Ultimate Job Ready Data Science Course',
