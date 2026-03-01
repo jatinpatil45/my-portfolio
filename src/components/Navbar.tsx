@@ -46,11 +46,11 @@ const Navbar = () => {
           <motion.a
             href="#home"
             whileHover={{ scale: 1.05 }}
-            className="text-xl font-bold font-mono"
+            className="text-xl font-bold font-mono tracking-tighter group"
           >
-            <span className="text-primary">{'<'}</span>
-            <span className="text-foreground">JP</span>
-            <span className="text-primary">{'/>'}</span>
+            <span className="text-primary group-hover:text-secondary transition-colors duration-300">{'<'}</span>
+            <span className="text-gradient">JP</span>
+            <span className="text-primary group-hover:text-secondary transition-colors duration-300">{'/>'}</span>
           </motion.a>
 
           {/* Desktop Navigation */}
@@ -65,7 +65,7 @@ const Navbar = () => {
                 whileHover={{ y: -2 }}
                 className="px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors relative group"
               >
-                <span className="font-mono text-primary text-xs mr-1">0{index + 1}.</span>
+
                 {link.label}
                 <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-primary group-hover:w-1/2 transition-all duration-300" />
               </motion.a>
@@ -126,7 +126,7 @@ const Navbar = () => {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="text-lg text-foreground hover:text-primary transition-colors"
                   >
-                    <span className="font-mono text-primary text-sm mr-2">0{index + 1}.</span>
+
                     {link.label}
                   </motion.a>
                 ))}

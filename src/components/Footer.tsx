@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Github, Linkedin, ArrowUp } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
+
 
 const Footer = () => {
   const scrollToTop = () => {
@@ -33,19 +34,27 @@ const Footer = () => {
               href="https://github.com/jatin8469"
               target="_blank"
               rel="noopener noreferrer"
-              whileHover={{ y: -3 }}
-              className="text-muted-foreground hover:text-primary transition-colors"
+              whileHover={{ y: -3, scale: 1.1 }}
+              className="transition-all"
             >
-              <Github className="w-5 h-5" />
+              <img
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/github/github-original.svg"
+                alt="GitHub"
+                className="w-5 h-5 invert [.light_&]:invert-0"
+              />
             </motion.a>
             <motion.a
               href="https://linkedin.com/in/jatin-patil-b75146376"
               target="_blank"
               rel="noopener noreferrer"
-              whileHover={{ y: -3 }}
-              className="text-muted-foreground hover:text-secondary transition-colors"
+              whileHover={{ y: -3, scale: 1.1 }}
+              className="transition-all"
             >
-              <Linkedin className="w-5 h-5" />
+              <img
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/linkedin/linkedin-original.svg"
+                alt="LinkedIn"
+                className="w-5 h-5"
+              />
             </motion.a>
             <motion.button
               onClick={scrollToTop}
