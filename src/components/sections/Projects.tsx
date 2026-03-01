@@ -71,7 +71,7 @@ const Projects = () => {
       <div className="container relative z-10 px-6">
         <ScrollReveal>
           <SectionHeading
-            label="05. Projects"
+            label="Projects"
             title="Featured Work"
             description="A showcase of projects spanning AI/ML, full-stack development, and data science"
           />
@@ -88,18 +88,15 @@ const Projects = () => {
                 >
                   {/* Header */}
                   <div className="flex items-start justify-between mb-4">
-                    <div className={`p-3 rounded-xl ${
-                      project.color === 'primary' ? 'bg-primary/10' : 'bg-secondary/10'
-                    }`}>
-                      <project.icon className={`w-6 h-6 ${
-                        project.color === 'primary' ? 'text-primary' : 'text-secondary'
-                      }`} />
+                    <div className={`p-3 rounded-xl ${project.color === 'primary' ? 'bg-primary/10' : 'bg-secondary/10'
+                      }`}>
+                      <project.icon className={`w-6 h-6 ${project.color === 'primary' ? 'text-primary' : 'text-secondary'
+                        }`} />
                     </div>
-                    <span className={`px-3 py-1 text-xs font-mono rounded-full ${
-                      project.color === 'primary' 
-                        ? 'bg-primary/10 text-primary border border-primary/30' 
+                    <span className={`px-3 py-1 text-xs font-mono rounded-full ${project.color === 'primary'
+                        ? 'bg-primary/10 text-primary border border-primary/30'
                         : 'bg-secondary/10 text-secondary border border-secondary/30'
-                    }`}>
+                      }`}>
                       {project.category}
                     </span>
                   </div>

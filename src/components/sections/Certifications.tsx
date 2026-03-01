@@ -77,7 +77,7 @@ const Certifications = () => {
       <div className="container relative z-10 px-6">
         <ScrollReveal>
           <SectionHeading
-            label="06. Certifications"
+            label="Certifications"
             title="Professional Credentials"
             description="Industry-recognized certifications demonstrating expertise in AI/ML, web development, and cloud technologies"
           />

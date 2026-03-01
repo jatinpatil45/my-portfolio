@@ -15,11 +15,11 @@ const About = () => {
       {/* Background elements */}
       <div className="absolute inset-0 bg-grid opacity-20" />
       <div className="absolute top-1/2 left-0 w-72 h-72 bg-primary/10 rounded-full blur-[100px]" />
-      
+
       <div className="container relative z-10 px-6">
         <ScrollReveal>
           <SectionHeading
-            label="02. About Me"
+            label="About Me"
             title="Know Who I Am"
             description="Passionate about transforming ideas into intelligent, scalable solutions"
           />
@@ -35,12 +35,12 @@ const About = () => {
               >
                 {/* Decorative frame */}
                 <div className="absolute inset-4 rounded-2xl neon-border glass-card" />
-                
+
                 {/* Main avatar container */}
                 <div className="absolute inset-0 rounded-2xl overflow-hidden glass-card flex items-center justify-center">
-                  <img 
-                    src="/images/profile.jpg" 
-                    alt="Jatin Patil" 
+                  <img
+                    src="/images/profile.jpg"
+                    alt="Jatin Patil"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -53,7 +53,7 @@ const About = () => {
                 >
                   🎓 BE Student
                 </motion.div>
-                
+
                 <motion.div
                   animate={{ y: [10, -10, 10] }}
                   transition={{ duration: 4, repeat: Infinity, delay: 1 }}
@@ -70,21 +70,21 @@ const About = () => {
             <div className="space-y-6">
               <div className="space-y-4 text-muted-foreground">
                 <p className="text-lg leading-relaxed">
-                  I'm <span className="text-primary font-semibold">Jatin Narayanbhai Patil</span>, 
-                  a passionate BE Computer Engineering student at 
+                  I'm <span className="text-primary font-semibold">Jatin Narayanbhai Patil</span>,
+                  a passionate BE Computer Engineering student at
                   <span className="text-foreground"> UPL University of Sustainable Technology</span> (Sem 4).
                 </p>
-                
+
                 <p className="leading-relaxed">
-                  My journey began with web development, crafting interactive experiences 
-                  with React and Node.js. But the allure of <span className="text-secondary">artificial intelligence</span> drew 
+                  My journey began with web development, crafting interactive experiences
+                  with React and Node.js. But the allure of <span className="text-secondary">artificial intelligence</span> drew
                   me deeper into the realm of data science and machine learning.
                 </p>
-                
+
                 <p className="leading-relaxed">
-                  Today, I'm bridging these worlds—building intelligent web applications that 
-                  leverage the power of AI to solve real-world problems. From predictive 
-                  health analytics to smart city solutions, I'm passionate about creating 
+                  Today, I'm bridging these worlds—building intelligent web applications that
+                  leverage the power of AI to solve real-world problems. From predictive
+                  health analytics to smart city solutions, I'm passionate about creating
                   technology that makes a difference.
                 </p>
               </div>

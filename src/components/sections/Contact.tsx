@@ -52,7 +52,7 @@ const Contact = () => {
       <div className="container relative z-10 px-6">
         <ScrollReveal>
           <SectionHeading
-            label="07. Contact"
+            label="Contact"
             title="Let's Connect"
             description="Have a project in mind or just want to chat? I'd love to hear from you!"
           />
