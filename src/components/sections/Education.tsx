@@ -42,7 +42,7 @@ const Education = () => {
       <div className="container relative z-10 px-6">
         <ScrollReveal>
           <SectionHeading
-            label="03. Education"
+            label="Education"
             title="Academic Journey"
             description="Building a strong foundation in computer science and engineering"
           />

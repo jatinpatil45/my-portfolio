@@ -53,7 +53,7 @@ const Hero = () => {
       <div className="container relative z-10 px-6">
         <ScrollReveal>
           <SectionHeading
-            label="01. Home"
+            label="Home"
             title=""
             description=""
           />
