@@ -6,21 +6,37 @@ import SectionHeading from '../SectionHeading';
 const Contact = () => {
   const contactMethods = [
     {
-      icon: Mail,
+      icon: (props: any) => (
+        <svg viewBox="0 0 24 24" {...props}>
+          <path fill="#EA4335" d="M24 4.5v15c0 .85-.65 1.5-1.5 1.5H21V7.38l-9 5.65-9-5.65V21H1.5c-.85 0-1.5-.65-1.5-1.5v-15c0-.4.15-.75.45-1.05.3-.3.65-.45 1.05-.45H3.4l8.6 5.4 8.6-5.4h1.95c.4 0 .75.15 1.05.45.3.3.45.65.45 1.05z" />
+        </svg>
+      ),
       label: 'Email',
       value: 'jatinpatil2233@gmail.com',
       href: 'mailto:jatinpatil2233@gmail.com',
       color: 'primary',
     },
     {
-      icon: Github,
+      icon: (props: any) => (
+        <img
+          src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/github/github-original.svg"
+          alt="GitHub"
+          className={`invert [.light_&]:invert-0 ${props.className || ''}`}
+        />
+      ),
       label: 'GitHub',
       value: 'github.com/jatin8469',
       href: 'https://github.com/jatin8469',
       color: 'secondary',
     },
     {
-      icon: Linkedin,
+      icon: (props: any) => (
+        <img
+          src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/linkedin/linkedin-original.svg"
+          alt="LinkedIn"
+          className={props.className || ''}
+        />
+      ),
       label: 'LinkedIn',
       value: 'Jatin Patil',
       href: 'https://linkedin.com/in/jatin-patil-b75146376',
@@ -56,13 +72,13 @@ const Contact = () => {
               >
                 <Sparkles className="w-12 h-12 text-primary" />
               </motion.div>
-              
+
               <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
                 Ready to Build Something <span className="text-gradient">Amazing</span>?
               </h3>
-              
+
               <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-                Whether it's an AI-powered application, a full-stack web solution, or 
+                Whether it's an AI-powered application, a full-stack web solution, or
                 data-driven insights—let's collaborate and turn ideas into reality.
               </p>
 
@@ -95,12 +111,10 @@ const Contact = () => {
                 >
                   <div className={`
                     w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center
-                    ${method.color === 'primary' ? 'bg-primary/10' : 'bg-secondary/10'}
+                    ${method.color === 'primary' ? 'bg-primary/5' : 'bg-secondary/5'}
                     group-hover:scale-110 transition-transform duration-300
                   `}>
-                    <method.icon className={`w-7 h-7 ${
-                      method.color === 'primary' ? 'text-primary' : 'text-secondary'
-                    }`} />
+                    <method.icon className="w-7 h-7" />
                   </div>
                   <p className="text-xs text-muted-foreground mb-1 font-mono">{method.label}</p>
                   <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">

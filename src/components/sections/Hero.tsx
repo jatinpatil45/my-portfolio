@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Github, Linkedin, Mail, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
+
 import TypingAnimation from '../TypingAnimation';
 import TiltCard from '../TiltCard';
 import ScrollReveal from '../ScrollReveal';
@@ -7,16 +8,44 @@ import SectionHeading from '../SectionHeading';
 
 const Hero = () => {
   const socialLinks = [
-    { icon: Github, href: 'https://github.com/jatin8469', label: 'GitHub' },
-    { icon: Linkedin, href: 'https://linkedin.com/in/jatin-patil-b75146376', label: 'LinkedIn' },
-    { icon: Mail, href: 'mailto:jatinpatil2233@gmail.com', label: 'Email' },
+    {
+      icon: (props: any) => (
+        <img
+          src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/github/github-original.svg"
+          alt="GitHub"
+          className={`invert [.light_&]:invert-0 ${props.className || ''}`}
+        />
+      ),
+      href: 'https://github.com/jatin8469',
+      label: 'GitHub'
+    },
+    {
+      icon: (props: any) => (
+        <img
+          src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/linkedin/linkedin-original.svg"
+          alt="LinkedIn"
+          className={props.className || ''}
+        />
+      ),
+      href: 'https://linkedin.com/in/jatin-patil-b75146376',
+      label: 'LinkedIn'
+    },
+    {
+      icon: (props: any) => (
+        <svg viewBox="0 0 24 24" {...props}>
+          <path fill="#EA4335" d="M24 4.5v15c0 .85-.65 1.5-1.5 1.5H21V7.38l-9 5.65-9-5.65V21H1.5c-.85 0-1.5-.65-1.5-1.5v-15c0-.4.15-.75.45-1.05.3-.3.65-.45 1.05-.45H3.4l8.6 5.4 8.6-5.4h1.95c.4 0 .75.15 1.05.45.3.3.45.65.45 1.05z" />
+        </svg>
+      ),
+      href: 'mailto:jatinpatil2233@gmail.com',
+      label: 'Email'
+    },
   ];
 
   return (
     <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Grid background */}
       <div className="absolute inset-0 bg-grid opacity-30" />
-      
+
       {/* Gradient orbs */}
       <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/20 rounded-full blur-[128px] animate-pulse" />
       <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-secondary/20 rounded-full blur-[128px] animate-pulse" style={{ animationDelay: '1s' }} />
@@ -65,7 +94,7 @@ const Hero = () => {
               transition={{ delay: 0.8 }}
               className="text-xl md:text-2xl lg:text-3xl text-muted-foreground mb-8 h-16 flex items-center justify-center"
             >
-              <TypingAnimation 
+              <TypingAnimation
                 text="Engineering Intelligent Solutions: Where Data Science Meets Modern Web Development."
                 speed={35}
                 delay={1200}
@@ -112,7 +141,7 @@ const Hero = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 1.8 + index * 0.1 }}
                 >
-                  <social.icon className="w-6 h-6 text-primary group-hover:text-secondary transition-colors" />
+                  <social.icon className="w-6 h-6 transition-transform group-hover:scale-110" />
                 </motion.a>
               ))}
             </motion.div>
