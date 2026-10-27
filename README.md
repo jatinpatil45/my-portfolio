@@ -12,7 +12,7 @@ Specializing in:
 
 ### 🔗 Connect with Me
 
-- **GitHub:** [jatin8469](https://github.com/jatin8469)
+- **GitHub:** [jatinpatil45](https://github.com/jatinpatil45)
 - **LinkedIn:** [jatin-patil-b75146376](https://linkedin.com/in/jatin-patil-b75146376)
 - **Email:** [jatinpatil2233@gmail.com](mailto:jatinpatil2233@gmail.com)
 - **Twitter:** [@jatin8469](https://twitter.com/jatin8469)

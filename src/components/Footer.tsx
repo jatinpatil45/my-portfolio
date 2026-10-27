@@ -31,7 +31,7 @@ const Footer = () => {
           {/* Social Links */}
           <div className="flex items-center gap-4">
             <motion.a
-              href="https://github.com/jatin8469"
+              href="https://github.com/jatinpatil45"
               target="_blank"
               rel="noopener noreferrer"
               whileHover={{ y: -3, scale: 1.1 }}
