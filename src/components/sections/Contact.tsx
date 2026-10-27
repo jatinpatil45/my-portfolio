@@ -25,8 +25,8 @@ const Contact = () => {
         />
       ),
       label: 'GitHub',
-      value: 'github.com/jatin8469',
-      href: 'https://github.com/jatin8469',
+      value: 'github.com/jatinpatil45',
+      href: 'https://github.com/jatinpatil45',
       color: 'secondary',
     },
     {

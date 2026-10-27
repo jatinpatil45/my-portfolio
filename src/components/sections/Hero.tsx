@@ -16,7 +16,7 @@ const Hero = () => {
           className={`invert [.light_&]:invert-0 ${props.className || ''}`}
         />
       ),
-      href: 'https://github.com/jatin8469',
+      href: 'https://github.com/jatinpatil45',
       label: 'GitHub'
     },
     {
