@@ -7,22 +7,26 @@ import TiltCard from '../TiltCard';
 const Projects = () => {
   const projects = [
     {
-      title: 'Predictive Health Suite',
-      description: 'AI-powered diagnostic tool analyzing patient data to identify early-stage chronic illness indicators with high accuracy.',
-      tech: ['Python', 'Pandas', 'Scikit-Learn', 'NumPy'],
+      title: 'AI Study Assistant (StudyMate AI)',
+      description: 'Intelligent study platform helping students learn smarter with PDF document Q&A, page-cited AI explanations, structured smart notes, and interactive practice quizzes.',
+      tech: ['React', 'TypeScript', 'Node.js', 'Firebase', 'Gemini AI'],
       category: 'AI/ML',
       icon: Brain,
       color: 'primary',
       featured: true,
+      github: 'https://github.com/jatinpatil45/ai-study-assistant',
+      liveUrl: 'https://studymate-ai-nine-tau.vercel.app',
     },
     {
-      title: 'E-Commerce Nexus',
-      description: 'Full-stack e-commerce platform with real-time inventory, secure payments, and responsive design.',
-      tech: ['React', 'Node.js', 'Express', 'MongoDB'],
+      title: 'AI Web Clone Builder',
+      description: 'AI-powered SaaS platform that transforms text prompts or images into complete multi-page websites with real-time chat refinement, live previews, and project tracking.',
+      tech: ['React', 'Tailwind CSS', 'Firebase', 'Gemini AI'],
       category: 'Full Stack',
       icon: Globe,
       color: 'secondary',
       featured: true,
+      github: 'https://github.com/jatinpatil45/Ai-Web-clone-builder',
+      liveUrl: 'https://ai-clone-builder.vercel.app',
     },
     {
       title: 'Smart City Traffic Analyzer',
@@ -32,6 +36,7 @@ const Projects = () => {
       icon: Zap,
       color: 'primary',
       featured: true,
+      github: 'https://github.com/jatinpatil45',
     },
     {
       title: 'AI-Powered Sales Forecaster',
@@ -65,8 +70,8 @@ const Projects = () => {
   return (
     <section id="projects" className="relative py-32 overflow-hidden">
       <div className="absolute inset-0 bg-grid opacity-20" />
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px]" />
-      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-[120px]" />
+      <div className="absolute top-0 right-1/4 w-[32rem] h-[32rem] rounded-full orb-primary" />
+      <div className="absolute bottom-0 left-1/4 w-[32rem] h-[32rem] rounded-full orb-secondary" />
 
       <div className="container relative z-10 px-6">
         <ScrollReveal>
@@ -130,19 +135,27 @@ const Projects = () => {
                     <motion.a
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
-                      href="#"
+                      href={project.github || 'https://github.com/jatinpatil45'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`${project.title} GitHub repository`}
                       className="p-3 rounded-full glass-card glow-cyan"
                     >
                       <Github className="w-5 h-5 text-primary" />
                     </motion.a>
-                    <motion.a
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                      href="#"
-                      className="p-3 rounded-full glass-card glow-purple"
-                    >
-                      <ExternalLink className="w-5 h-5 text-secondary" />
-                    </motion.a>
+                    {project.liveUrl && (
+                      <motion.a
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        href={project.liveUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${project.title} live demo`}
+                        className="p-3 rounded-full glass-card glow-purple"
+                      >
+                        <ExternalLink className="w-5 h-5 text-secondary" />
+                      </motion.a>
+                    )}
                   </motion.div>
                 </motion.div>
               </TiltCard>

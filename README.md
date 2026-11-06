@@ -2,7 +2,7 @@
 
 ## 👤 About Me
 
-**Jatin Narayanbhai Patil** - A passionate BE Computer Engineering student at UPL University of Sustainable Technology (Sem 4).
+**Jatin Narayanbhai Patil** - A passionate BE Computer Engineering student at UPL University of Sustainable Technology (Sem 6).
 
 Specializing in:
 

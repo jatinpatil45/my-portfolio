@@ -9,7 +9,7 @@ const Education = () => {
       degree: 'Bachelor of Engineering',
       field: 'Computer Engineering',
       institution: 'UPL University of Sustainable Technology',
-      year: '2023 - Present (2nd Year)',
+      year: '2023 - Present (3rd Year, Sem 6)',
       status: 'In Progress',
       highlight: 'Specializing in Data Science',
       icon: '🎓',
@@ -37,7 +37,7 @@ const Education = () => {
   return (
     <section id="education" className="relative py-32 overflow-hidden">
       <div className="absolute inset-0 bg-grid opacity-20" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-secondary/10 rounded-full blur-[120px]" />
+      <div className="absolute bottom-0 -right-16 w-[32rem] h-[32rem] rounded-full orb-secondary" />
 
       <div className="container relative z-10 px-6">
         <ScrollReveal>

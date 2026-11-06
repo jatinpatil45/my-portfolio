@@ -47,7 +47,7 @@ const Contact = () => {
   return (
     <section id="contact" className="relative py-32 overflow-hidden">
       <div className="absolute inset-0 bg-grid opacity-20" />
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-t from-primary/20 to-secondary/10 rounded-full blur-[150px]" />
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[680px] h-[680px] rounded-full orb-mixed" />
 
       <div className="container relative z-10 px-6">
         <ScrollReveal>
@@ -65,13 +65,9 @@ const Contact = () => {
               whileHover={{ y: -5 }}
               className="glass-card neon-border rounded-3xl p-8 md:p-12 text-center mb-12 hover:glow-mixed transition-all duration-500"
             >
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                className="inline-block mb-6"
-              >
+              <div className="inline-block mb-6 animate-float">
                 <Sparkles className="w-12 h-12 text-primary" />
-              </motion.div>
+              </div>
 
               <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
                 Ready to Build Something <span className="text-gradient">Amazing</span>?

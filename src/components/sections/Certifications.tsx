@@ -72,7 +72,7 @@ const Certifications = () => {
     <section id="certifications" className="relative py-32 overflow-hidden">
       {/* Background elements */}
       <div className="absolute inset-0 bg-grid opacity-20" />
-      <div className="absolute top-1/2 right-0 w-72 h-72 bg-secondary/10 rounded-full blur-[100px]" />
+      <div className="absolute top-1/2 -right-16 w-[28rem] h-[28rem] rounded-full orb-secondary" />
 
       <div className="container relative z-10 px-6">
         <ScrollReveal>
@@ -100,6 +100,8 @@ const Certifications = () => {
                     <img
                       src={cert.image}
                       alt={cert.alt}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       onError={(e) => {
                         // Fallback for missing images

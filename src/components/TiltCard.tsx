@@ -1,5 +1,5 @@
-import { useRef, useState, ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { useRef, ReactNode, useCallback } from 'react';
+import { motion, useMotionValue, useSpring, useMotionTemplate } from 'framer-motion';
 
 interface TiltCardProps {
   children: ReactNode;
@@ -8,69 +8,93 @@ interface TiltCardProps {
   glareEnabled?: boolean;
 }
 
-const TiltCard = ({ children, className = '', tiltAmount = 15, glareEnabled = true }: TiltCardProps) => {
+const SPRING_CONFIG = { stiffness: 260, damping: 28, mass: 0.5 };
+
+const TiltCard = ({
+  children,
+  className = '',
+  tiltAmount = 15,
+  glareEnabled = true,
+}: TiltCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [rotateX, setRotateX] = useState(0);
-  const [rotateY, setRotateY] = useState(0);
-  const [glarePosition, setGlarePosition] = useState({ x: 50, y: 50 });
+  const rectRef = useRef<DOMRect | null>(null);
+  const rafRef = useRef<number | null>(null);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
+  const rawRotateX = useMotionValue(0);
+  const rawRotateY = useMotionValue(0);
+  const rotateX = useSpring(rawRotateX, SPRING_CONFIG);
+  const rotateY = useSpring(rawRotateY, SPRING_CONFIG);
 
-    const rect = cardRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
+  const glareX = useMotionValue(50);
+  const glareY = useMotionValue(50);
+  const glareOpacity = useMotionValue(0);
+  const glareBackground = useMotionTemplate`radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.14) 0%, transparent 60%)`;
 
-    const mouseX = e.clientX - centerX;
-    const mouseY = e.clientY - centerY;
+  const handleMouseEnter = useCallback(() => {
+    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return;
+    if (cardRef.current) {
+      rectRef.current = cardRef.current.getBoundingClientRect();
+      glareOpacity.set(1);
+    }
+  }, [glareOpacity]);
 
-    const rotateXValue = (mouseY / (rect.height / 2)) * -tiltAmount;
-    const rotateYValue = (mouseX / (rect.width / 2)) * tiltAmount;
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!rectRef.current) return;
+      const clientX = e.clientX;
+      const clientY = e.clientY;
 
-    setRotateX(rotateXValue);
-    setRotateY(rotateYValue);
+      if (rafRef.current !== null) return;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        const rect = rectRef.current;
+        if (!rect || rect.width === 0 || rect.height === 0) return;
 
-    // Calculate glare position
-    const glareX = ((e.clientX - rect.left) / rect.width) * 100;
-    const glareY = ((e.clientY - rect.top) / rect.height) * 100;
-    setGlarePosition({ x: glareX, y: glareY });
-  };
+        const relX = (clientX - rect.left) / rect.width;
+        const relY = (clientY - rect.top) / rect.height;
 
-  const handleMouseLeave = () => {
-    setRotateX(0);
-    setRotateY(0);
-    setGlarePosition({ x: 50, y: 50 });
-  };
+        rawRotateX.set((relY - 0.5) * 2 * -tiltAmount);
+        rawRotateY.set((relX - 0.5) * 2 * tiltAmount);
+        glareX.set(relX * 100);
+        glareY.set(relY * 100);
+      });
+    },
+    [tiltAmount, rawRotateX, rawRotateY, glareX, glareY]
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    rectRef.current = null;
+    rawRotateX.set(0);
+    rawRotateY.set(0);
+    glareOpacity.set(0);
+  }, [rawRotateX, rawRotateY, glareOpacity]);
 
   return (
     <motion.div
       ref={cardRef}
       className={`relative ${className}`}
+      onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{
-        transformStyle: 'preserve-3d',
-        perspective: '1000px',
-      }}
-      animate={{
+        transformPerspective: 1000,
         rotateX,
         rotateY,
-      }}
-      transition={{
-        type: 'spring',
-        stiffness: 300,
-        damping: 30,
       }}
     >
       {children}
       {glareEnabled && (
-        <div
-          className="absolute inset-0 pointer-events-none rounded-inherit overflow-hidden"
+        <motion.div
+          className="absolute inset-0 pointer-events-none overflow-hidden"
           style={{
             borderRadius: 'inherit',
-            background: `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255,255,255,0.15) 0%, transparent 60%)`,
-            opacity: Math.abs(rotateX) + Math.abs(rotateY) > 0 ? 1 : 0,
-            transition: 'opacity 0.3s ease',
+            background: glareBackground,
+            opacity: glareOpacity,
+            transition: 'opacity 0.25s ease',
           }}
         />
       )}
