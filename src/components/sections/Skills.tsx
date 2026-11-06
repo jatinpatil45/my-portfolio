@@ -63,8 +63,8 @@ const Skills = () => {
   return (
     <section id="skills" className="relative py-32 overflow-hidden">
       <div className="absolute inset-0 bg-grid opacity-20" />
-      <div className="absolute top-1/4 left-0 w-80 h-80 bg-primary/10 rounded-full blur-[100px]" />
-      <div className="absolute bottom-1/4 right-0 w-80 h-80 bg-secondary/10 rounded-full blur-[100px]" />
+      <div className="absolute top-1/4 -left-16 w-[30rem] h-[30rem] rounded-full orb-primary" />
+      <div className="absolute bottom-1/4 -right-16 w-[30rem] h-[30rem] rounded-full orb-secondary" />
 
       <div className="container relative z-10 px-6">
         <ScrollReveal>

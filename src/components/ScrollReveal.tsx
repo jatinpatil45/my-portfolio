@@ -1,5 +1,5 @@
-import { useRef, useEffect, ReactNode } from 'react';
-import { motion, useInView, useAnimation } from 'framer-motion';
+import { ReactNode } from 'react';
+import { motion } from 'framer-motion';
 
 interface ScrollRevealProps {
   children: ReactNode;
@@ -9,50 +9,31 @@ interface ScrollRevealProps {
   duration?: number;
 }
 
+const OFFSETS = {
+  up: { x: 0, y: 28 },
+  down: { x: 0, y: -28 },
+  left: { x: 28, y: 0 },
+  right: { x: -28, y: 0 },
+};
+
 const ScrollReveal = ({
   children,
   className = '',
   delay = 0,
   direction = 'up',
-  duration = 0.6,
+  duration = 0.5,
 }: ScrollRevealProps) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-100px' });
-  const controls = useAnimation();
-
-  const directionVariants = {
-    up: { y: 50 },
-    down: { y: -50 },
-    left: { x: 50 },
-    right: { x: -50 },
-  };
-
-  useEffect(() => {
-    if (isInView) {
-      controls.start('visible');
-    }
-  }, [isInView, controls]);
+  const offset = OFFSETS[direction];
 
   return (
     <motion.div
-      ref={ref}
-      initial="hidden"
-      animate={controls}
-      variants={{
-        hidden: {
-          opacity: 0,
-          ...directionVariants[direction],
-        },
-        visible: {
-          opacity: 1,
-          x: 0,
-          y: 0,
-        },
-      }}
+      initial={{ opacity: 0, x: offset.x, y: offset.y }}
+      whileInView={{ opacity: 1, x: 0, y: 0 }}
+      viewport={{ once: true, amount: 0.12 }}
       transition={{
         duration,
         delay,
-        ease: 'easeOut',
+        ease: [0.22, 1, 0.36, 1],
       }}
       className={className}
     >

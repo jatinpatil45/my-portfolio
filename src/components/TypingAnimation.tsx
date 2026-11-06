@@ -10,7 +10,6 @@ interface TypingAnimationProps {
 const TypingAnimation = ({ text, speed = 50, delay = 1000, className = '' }: TypingAnimationProps) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [showCursor, setShowCursor] = useState(true);
 
   useEffect(() => {
     const startTimeout = setTimeout(() => {
@@ -21,31 +20,19 @@ const TypingAnimation = ({ text, speed = 50, delay = 1000, className = '' }: Typ
   }, [delay]);
 
   useEffect(() => {
-    if (!isTyping) return;
+    if (!isTyping || displayedText.length >= text.length) return;
 
-    if (displayedText.length < text.length) {
-      const timeout = setTimeout(() => {
-        setDisplayedText(text.slice(0, displayedText.length + 1));
-      }, speed);
+    const timeout = setTimeout(() => {
+      setDisplayedText(text.slice(0, displayedText.length + 1));
+    }, speed);
 
-      return () => clearTimeout(timeout);
-    } else {
-      // Typing complete, blink cursor
-      const cursorInterval = setInterval(() => {
-        setShowCursor(prev => !prev);
-      }, 530);
-
-      return () => clearInterval(cursorInterval);
-    }
+    return () => clearTimeout(timeout);
   }, [displayedText, text, speed, isTyping]);
 
   return (
     <span className={className}>
       {displayedText}
-      <span 
-        className="text-primary ml-0.5"
-        style={{ opacity: showCursor ? 1 : 0 }}
-      >
+      <span className="text-primary ml-0.5 inline-block animate-[blink_1s_step-end_infinite]">
         |
       </span>
     </span>

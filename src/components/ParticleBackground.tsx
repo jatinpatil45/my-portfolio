@@ -7,23 +7,56 @@ interface Particle {
   speedX: number;
   speedY: number;
   opacity: number;
-  color: string;
+  colorIndex: number;
+}
+
+const COLORS = ['#00d4ff', '#a855f7', '#ec4899'];
+const MAX_CONNECT_DIST = 115;
+const MAX_CONNECT_DIST_SQ = MAX_CONNECT_DIST * MAX_CONNECT_DIST;
+
+/**
+ * Pre-renders a small glowing particle sprite once per color so we never call
+ * expensive `ctx.shadowBlur` inside the animation loop.
+ */
+function createGlowSprite(color: string): HTMLCanvasElement {
+  const sprite = document.createElement('canvas');
+  const radius = 12;
+  sprite.width = radius * 2;
+  sprite.height = radius * 2;
+  const sCtx = sprite.getContext('2d');
+  if (sCtx) {
+    const grad = sCtx.createRadialGradient(radius, radius, 0, radius, radius, radius);
+    grad.addColorStop(0, color);
+    grad.addColorStop(0.28, color);
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    sCtx.fillStyle = grad;
+    sCtx.fillRect(0, 0, sprite.width, sprite.height);
+  }
+  return sprite;
 }
 
 const ParticleBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    const prefersReducedMotion =
+      window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
     if (!ctx) return;
 
-    let animationId: number;
+    let animationId = 0;
+    let resizeTimer: number | undefined;
     let particles: Particle[] = [];
+    let lastFrameTime = 0;
+    // ~40 FPS is visually seamless for slow-drifting particles while cutting backdrop-blur repaints drastically
+    const frameInterval = 1000 / 40;
 
-    const colors = ['#00d4ff', '#a855f7', '#ec4899'];
+    const sprites = COLORS.map(createGlowSprite);
 
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
@@ -31,94 +64,105 @@ const ParticleBackground = () => {
     };
 
     const createParticles = () => {
-      particles = [];
       const isMobile = window.innerWidth <= 768;
-      // Drastically reduce particles on mobile devices
-      const divisor = isMobile ? 30000 : 15000;
-      const maxParticles = isMobile ? 40 : 120;
+      const divisor = isMobile ? 42000 : 28000;
+      const maxParticles = isMobile ? 22 : 52;
 
-      let particleCount = Math.floor((canvas.width * canvas.height) / divisor);
-      particleCount = Math.min(particleCount, maxParticles);
+      const count = Math.min(
+        Math.floor((canvas.width * canvas.height) / divisor),
+        maxParticles
+      );
 
-      for (let i = 0; i < particleCount; i++) {
-        particles.push({
+      particles = new Array(count);
+      for (let i = 0; i < count; i++) {
+        particles[i] = {
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          size: Math.random() * 2 + 0.5,
-          speedX: (Math.random() - 0.5) * 0.5,
-          speedY: (Math.random() - 0.5) * 0.5,
-          opacity: Math.random() * 0.5 + 0.2,
-          color: colors[Math.floor(Math.random() * colors.length)],
-        });
+          size: Math.random() * 1.8 + 0.8,
+          speedX: (Math.random() - 0.5) * 0.45,
+          speedY: (Math.random() - 0.5) * 0.45,
+          opacity: Math.random() * 0.45 + 0.25,
+          colorIndex: Math.floor(Math.random() * COLORS.length),
+        };
       }
     };
 
-    const drawParticles = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      particles.forEach((particle, index) => {
-        // Update position
-        particle.x += particle.speedX;
-        particle.y += particle.speedY;
-
-        // Wrap around edges
-        if (particle.x < 0) particle.x = canvas.width;
-        if (particle.x > canvas.width) particle.x = 0;
-        if (particle.y < 0) particle.y = canvas.height;
-        if (particle.y > canvas.height) particle.y = 0;
-
-        // Draw particle with glow
-        const isMobile = window.innerWidth <= 768;
-
-        ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        ctx.fillStyle = particle.color;
-        ctx.globalAlpha = particle.opacity;
-
-        // Disable expensive shadow blur on mobile devices
-        if (!isMobile) {
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = particle.color;
-        }
-
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        ctx.shadowBlur = 0;
-
-        // Draw connections
-        particles.slice(index + 1).forEach((otherParticle) => {
-          const dx = particle.x - otherParticle.x;
-          const dy = particle.y - otherParticle.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < 120) {
-            ctx.beginPath();
-            ctx.moveTo(particle.x, particle.y);
-            ctx.lineTo(otherParticle.x, otherParticle.y);
-            ctx.strokeStyle = particle.color;
-            ctx.globalAlpha = (1 - distance / 120) * 0.15;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-          }
-        });
-      });
-
+    const drawParticles = (timestamp: number) => {
       animationId = requestAnimationFrame(drawParticles);
+
+      if (document.hidden) return;
+      if (timestamp - lastFrameTime < frameInterval) return;
+      lastFrameTime = timestamp;
+
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+
+      const len = particles.length;
+      ctx.lineWidth = 0.5;
+
+      for (let i = 0; i < len; i++) {
+        const p = particles[i];
+
+        p.x += p.speedX;
+        p.y += p.speedY;
+
+        if (p.x < 0) p.x = width;
+        else if (p.x > width) p.x = 0;
+        if (p.y < 0) p.y = height;
+        else if (p.y > height) p.y = 0;
+
+        // Draw pre-rendered glow sprite (zero shadowBlur overhead)
+        const drawRadius = p.size * 4.5;
+        ctx.globalAlpha = p.opacity;
+        ctx.drawImage(
+          sprites[p.colorIndex],
+          p.x - drawRadius,
+          p.y - drawRadius,
+          drawRadius * 2,
+          drawRadius * 2
+        );
+
+        // Draw nearby connections without array allocations
+        for (let j = i + 1; j < len; j++) {
+          const other = particles[j];
+          const dx = p.x - other.x;
+          const dy = p.y - other.y;
+          const distSq = dx * dx + dy * dy;
+
+          if (distSq < MAX_CONNECT_DIST_SQ) {
+            const dist = Math.sqrt(distSq);
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(other.x, other.y);
+            ctx.strokeStyle = COLORS[p.colorIndex];
+            ctx.globalAlpha = (1 - dist / MAX_CONNECT_DIST) * 0.14;
+            ctx.stroke();
+          }
+        }
+      }
+
+      ctx.globalAlpha = 1;
+    };
+
+    const handleResize = () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        resizeCanvas();
+        createParticles();
+      }, 150);
     };
 
     resizeCanvas();
     createParticles();
-    drawParticles();
+    animationId = requestAnimationFrame(drawParticles);
 
-    window.addEventListener('resize', () => {
-      resizeCanvas();
-      createParticles();
-    });
+    window.addEventListener('resize', handleResize, { passive: true });
 
     return () => {
       cancelAnimationFrame(animationId);
-      window.removeEventListener('resize', resizeCanvas);
+      window.clearTimeout(resizeTimer);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 

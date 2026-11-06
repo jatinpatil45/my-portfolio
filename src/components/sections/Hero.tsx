@@ -46,9 +46,9 @@ const Hero = () => {
       {/* Grid background */}
       <div className="absolute inset-0 bg-grid opacity-30" />
 
-      {/* Gradient orbs */}
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/20 rounded-full blur-[128px] animate-pulse" />
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-secondary/20 rounded-full blur-[128px] animate-pulse" style={{ animationDelay: '1s' }} />
+      {/* Gradient orbs (GPU radial gradients without expensive blur filters) */}
+      <div className="absolute top-1/4 -left-32 w-[32rem] h-[32rem] rounded-full orb-primary" />
+      <div className="absolute bottom-1/4 -right-32 w-[32rem] h-[32rem] rounded-full orb-secondary" />
 
       <div className="container relative z-10 px-6">
         <ScrollReveal>
@@ -165,15 +165,13 @@ const Hero = () => {
           transition={{ delay: 2.5 }}
           className="absolute bottom-8 left-1/2 -translate-x-1/2"
         >
-          <motion.a
+          <a
             href="#about"
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+            className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary transition-colors animate-float"
           >
             <span className="text-xs font-mono">scroll</span>
             <ChevronDown className="w-5 h-5" />
-          </motion.a>
+          </a>
         </motion.div>
       </div>
     </section>

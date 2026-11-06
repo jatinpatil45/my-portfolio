@@ -14,7 +14,7 @@ const About = () => {
     <section id="about" className="relative py-32 overflow-hidden">
       {/* Background elements */}
       <div className="absolute inset-0 bg-grid opacity-20" />
-      <div className="absolute top-1/2 left-0 w-72 h-72 bg-primary/10 rounded-full blur-[100px]" />
+      <div className="absolute top-1/2 -left-16 w-[28rem] h-[28rem] rounded-full orb-primary" />
 
       <div className="container relative z-10 px-6">
         <ScrollReveal>
@@ -39,28 +39,22 @@ const About = () => {
                 {/* Main avatar container */}
                 <div className="absolute inset-0 rounded-2xl overflow-hidden glass-card flex items-center justify-center">
                   <img
-                    src="/images/profile.jpg"
+                    src="/images/profile.jpg?v=2"
                     alt="Jatin Patil"
-                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover object-top"
                   />
                 </div>
 
                 {/* Floating badges */}
-                <motion.div
-                  animate={{ y: [-10, 10, -10] }}
-                  transition={{ duration: 4, repeat: Infinity }}
-                  className="absolute -top-4 -right-4 px-4 py-2 glass-card rounded-full text-sm font-mono text-primary glow-cyan"
-                >
+                <div className="absolute -top-4 -right-4 px-4 py-2 glass-card rounded-full text-sm font-mono text-primary glow-cyan animate-float">
                   🎓 BE Student
-                </motion.div>
+                </div>
 
-                <motion.div
-                  animate={{ y: [10, -10, 10] }}
-                  transition={{ duration: 4, repeat: Infinity, delay: 1 }}
-                  className="absolute -bottom-4 -left-4 px-4 py-2 glass-card rounded-full text-sm font-mono text-secondary glow-purple"
-                >
-                  💻 2nd Year
-                </motion.div>
+                <div className="absolute -bottom-4 -left-4 px-4 py-2 glass-card rounded-full text-sm font-mono text-secondary glow-purple animate-float-reverse">
+                  💻 3rd Year • Sem 6
+                </div>
               </motion.div>
             </div>
           </ScrollReveal>
@@ -72,7 +66,7 @@ const About = () => {
                 <p className="text-lg leading-relaxed">
                   I'm <span className="text-primary font-semibold">Jatin Narayanbhai Patil</span>,
                   a passionate BE Computer Engineering student at
-                  <span className="text-foreground"> UPL University of Sustainable Technology</span> (Sem 4).
+                  <span className="text-foreground"> UPL University of Sustainable Technology</span> (Sem 6).
                 </p>
 
                 <p className="leading-relaxed">
