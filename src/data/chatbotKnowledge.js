@@ -150,6 +150,21 @@ export const projects = [
 // ============================================================================
 export const certifications = [
   {
+    title: 'Ultimate Web Development Course 2026 - Build Modern Websites',
+    issuer: 'CodeWithHarry',
+    date: 'November 7, 2026',
+  },
+  {
+    title: 'Foundation Course on AI Readiness',
+    issuer: 'IICT & AI Skills House (Google & YouTube)',
+    date: 'September 9, 2026',
+  },
+  {
+    title: 'Use AI as a Creative or Expert Partner',
+    issuer: 'Google (via Coursera)',
+    date: 'August 28, 2026',
+  },
+  {
     title: 'The Ultimate Job Ready Data Science Course',
     issuer: 'CodeWithHarry',
     date: 'February 20, 2026',
@@ -157,10 +172,12 @@ export const certifications = [
   {
     title: 'Complete 2025 Python Bootcamp: Learn Python from Scratch',
     issuer: 'CodeWithHarry',
+    date: 'January 4, 2026',
   },
   {
     title: 'Build a Computer Vision App with Azure Cognitive Services',
     issuer: 'Microsoft Learn',
+    date: 'September 20, 2024',
   },
   {
     title: 'Java Bootcamp',
