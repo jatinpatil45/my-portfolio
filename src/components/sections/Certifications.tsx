@@ -25,6 +25,8 @@ const Certifications = () => {
       organization: 'CodeWithHarry',
       image: '/images/cert-python-bootcamp.jpg',
       alt: 'Python Bootcamp Certificate',
+      date: 'January 4, 2026',
+      certificateId: 'CWH-COMPLETE-PYTHON-BOOTCAMP-LEARN-PYTHON-FROM-SCRATCH-FHH3OS1Z',
     },
     {
       id: 2,
@@ -32,6 +34,9 @@ const Certifications = () => {
       organization: 'Microsoft Learn',
       image: '/images/cert-azure-vision.jpg',
       alt: 'Azure Cognitive Services Certificate',
+      date: 'September 20, 2024',
+      certificateId: '3Z8ZHH1SOHC7',
+      verificationUrl: 'https://coursera.org/verify/3Z8ZHH1SOHC7',
     },
     {
       id: 3,
@@ -55,16 +60,42 @@ const Certifications = () => {
       verificationUrl: 'https://www.letsupgrade.in/verify',
       duration: 'Feb 11–13, 2026 (3 Days)',
     },
-
-
     {
-      id: 9,
+      id: 5,
       title: 'The Ultimate Job Ready Data Science Course',
       organization: 'CodeWithHarry',
       image: '/images/certificate.png',
       alt: 'Data Science Course Completion Certificate',
       date: 'February 20, 2026',
       certificateId: 'CWH-THE-ULTIMATE-JOB-READY-DATA-SCIENCE-COURSE-FHHg0SiZ',
+    },
+    {
+      id: 6,
+      title: 'Use AI as a Creative or Expert Partner',
+      organization: 'Google (via Coursera)',
+      image: '/images/cert-coursera-google-ai.png',
+      alt: 'Use AI as a Creative or Expert Partner Certificate',
+      date: 'August 28, 2026',
+      certificateId: 'CV3CNZVQY6KG',
+      verificationUrl: 'https://coursera.org/verify/CV3CNZVQY6KG',
+    },
+    {
+      id: 7,
+      title: 'Foundation Course on AI Readiness',
+      organization: 'IICT & AI Skills House (Google & YouTube)',
+      image: '/images/cert-iict-ai-readiness.png',
+      alt: 'Foundation Course on AI Readiness Certificate',
+      date: 'September 9, 2026',
+      certificateId: 'IICT-15082662071',
+    },
+    {
+      id: 8,
+      title: 'Ultimate Web Development Course 2026 - Build Modern Websites',
+      organization: 'CodeWithHarry',
+      image: '/images/cert-web-dev-2026.png',
+      alt: 'Ultimate Web Development Course 2026 Certificate',
+      date: 'November 7, 2026',
+      certificateId: 'CWH-THE-ULTIMATE-WEB-DEV-COURSE-FHH3OS1Z',
     },
   ];
 

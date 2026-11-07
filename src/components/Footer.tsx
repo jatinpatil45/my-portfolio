@@ -24,8 +24,7 @@ const Footer = () => {
 
           {/* Copyright */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Built with</span>
-            <span>by Jatin Patil © {new Date().getFullYear()}</span>
+            <span>Built by Jatin Patil © {new Date().getFullYear()}</span>
           </div>
 
           {/* Social Links */}

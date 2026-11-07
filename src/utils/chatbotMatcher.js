@@ -616,6 +616,8 @@ export function matchChatbotResponse(userInput, knowledge = defaultKnowledge) {
           'completed courses',
           'microsoft learn',
           'azure cognitive',
+          'ai readiness',
+          'ai skills house',
         ],
         keywords: [
           'certification',
@@ -633,6 +635,8 @@ export function matchChatbotResponse(userInput, knowledge = defaultKnowledge) {
           'codewithharry',
           'letsupgrade',
           'azure',
+          'coursera',
+          'iict',
         ],
         respond: () => responses.certifications(),
       },
