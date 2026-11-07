@@ -2,7 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import PortfolioChatbot from '../components/PortfolioChatbot';
 import chatbotKnowledge from '../data/chatbotKnowledge';
+import { createKnowledgeGraph } from '../data/knowledgeGraph';
 import { matchChatbotResponse } from '../utils/chatbotMatcher';
+import { levenshteinDistance, similarityScore } from '../utils/fuzzyMatcher';
+import { createInitialContext, updateContext } from '../utils/contextManager';
+import { stripMarkdownForSpeech } from '../services/voiceService';
+import { trackInteraction, getAnalyticsSummary, resetAnalytics } from '../services/analyticsService';
 
 const EXPECTED_FALLBACK =
   "I'm not sure about that yet! You can ask me about Jatin's skills, projects, education, certifications or achievements.";
@@ -162,5 +167,110 @@ describe('PortfolioChatbot UI & Offline Functionality', () => {
 
     // Confirm zero network calls (100% offline capable after page load)
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('Jatin AI 3.0 Modular Architecture (Knowledge Graph, Fuzzy NLP, Context, Analytics & Voice)', () => {
+  it('resolves typo-tolerant queries via fuzzyMatcher without false positives', () => {
+    expect(levenshteinDistance('skills', 'skils')).toBe(1);
+    expect(similarityScore('certifications', 'certifcations')).toBeGreaterThan(0.9);
+
+    const typoSkills = matchChatbotResponse('what are jatins skils');
+    expect(typoSkills.intent).toBe('skills');
+
+    const typoCerts = matchChatbotResponse('show jatins certifcations');
+    expect(typoCerts.intent).toBe('certifications');
+
+    const typoStudyMate = matchChatbotResponse('tell me about studymat');
+    expect(typoStudyMate.intent).toBe('project_detail');
+    expect(typoStudyMate.reply).toContain('StudyMate AI');
+  });
+
+  it('traverses the Knowledge Graph for skill-to-project, project-to-tech, and achievement-to-activity relationships', () => {
+    const graph = createKnowledgeGraph(chatbotKnowledge);
+
+    const pythonProjects = graph.getProjectsBySkill('Python');
+    expect(pythonProjects.length).toBeGreaterThanOrEqual(2);
+    expect(pythonProjects.some((p) => p.title.includes('Smart City'))).toBe(true);
+
+    const studyMateTech = graph.getTechnologiesByProject('AI Study Assistant');
+    expect(studyMateTech).toContain('React');
+    expect(studyMateTech).toContain('TypeScript');
+
+    const gsaActivities = graph.getActivitiesForAchievement('Google Student Ambassador');
+    expect(gsaActivities.length).toBeGreaterThan(0);
+
+    const pythonCerts = graph.getCertificationsBySkill('Python');
+    expect(pythonCerts.length).toBeGreaterThanOrEqual(1);
+
+    const relatedToStudyMate = graph.getRelatedProjects('AI Study Assistant (StudyMate AI)');
+    expect(relatedToStudyMate.length).toBeGreaterThan(0);
+  });
+
+  it('validates all 10 structured knowledge categories, item schema, verification status, and retrieveKnowledge()', () => {
+    const expectedCategoryKeys = [
+      'personalProfile',
+      'education',
+      'programmingLanguages',
+      'technicalSkills',
+      'projects',
+      'certifications',
+      'achievements',
+      'experience',
+      'contactInformation',
+      'learningInterests',
+    ];
+
+    for (const key of expectedCategoryKeys) {
+      expect(Array.isArray(chatbotKnowledge.structuredCategories[key])).toBe(true);
+      expect(chatbotKnowledge.structuredCategories[key].length).toBeGreaterThan(0);
+    }
+
+    const seenIds = new Set();
+    for (const item of chatbotKnowledge.allKnowledgeItems) {
+      expect(typeof item.id).toBe('string');
+      expect(seenIds.has(item.id)).toBe(false);
+      seenIds.add(item.id);
+
+      expect(typeof item.category).toBe('string');
+      expect(typeof item.title).toBe('string');
+      expect(typeof item.description).toBe('string');
+      expect(Array.isArray(item.keywords)).toBe(true);
+      expect(Array.isArray(item.synonyms)).toBe(true);
+      expect(Array.isArray(item.relatedIds)).toBe(true);
+      expect(typeof item.source).toBe('string');
+      expect(['verified', 'incomplete']).toContain(item.verificationStatus);
+    }
+
+    const retrieval = chatbotKnowledge.retrieveKnowledge('Tell me about Python and StudyMate AI');
+    expect(retrieval.hasVerifiedMatch).toBe(true);
+    expect(retrieval.matchedItems.length).toBeGreaterThan(0);
+    expect(retrieval.relatedItems.length).toBeGreaterThan(0);
+    expect(retrieval.portfolioLinks.length).toBeGreaterThan(0);
+  });
+
+  it('maintains multi-turn conversation context for pronoun follow-up questions', () => {
+    let ctx = createInitialContext();
+    const firstTurn = matchChatbotResponse('Tell me about AI Study Assistant', chatbotKnowledge, ctx);
+    expect(firstTurn.intent).toBe('project_detail');
+
+    ctx = updateContext(ctx, firstTurn.matchResult, 'Tell me about AI Study Assistant');
+    expect(ctx.lastProject?.title).toContain('AI Study Assistant');
+
+    const secondTurn = matchChatbotResponse('Is there a live demo for it?', chatbotKnowledge, ctx);
+    expect(secondTurn.intent).toBe('project_detail');
+    expect(secondTurn.reply).toContain('https://studymate-ai-nine-tau.vercel.app');
+  });
+
+  it('tracks client-side analytics and strips markdown cleanly for speech synthesis', () => {
+    resetAnalytics();
+    trackInteraction({ query: 'skills', intent: 'skills', confidence: 0.95, source: 'quick_reply' });
+    const summary = getAnalyticsSummary();
+    expect(summary.totalMessages).toBe(1);
+    expect(summary.quickReplyClicks).toBe(1);
+    expect(summary.topIntents[0].intent).toBe('skills');
+
+    const speechClean = stripMarkdownForSpeech('Hello 👋 **Jatin AI** at https://jatinpatil45.vercel.app/');
+    expect(speechClean).toBe('Hello Jatin AI at link');
   });
 });
