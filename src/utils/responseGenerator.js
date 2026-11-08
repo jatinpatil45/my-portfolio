@@ -1,17 +1,64 @@
 /**
- * Response Generator for Jatin AI 3.0
+ * Response Generator & Confidence System Handler for Jatin AI 3.0
  *
- * Synthesizes formatted conversational responses from matched intents,
- * extracted entities, the editable knowledge base, and the knowledge graph.
+ * Implements:
+ * - Verified-only answer synthesis across all 18 intents
+ * - Multi-turn contextual response formatting (e.g., resolving "Which one uses Python?" against previous projects)
+ * - Side-by-side factual comparisons (projects, skills, domains)
+ * - Recruiter & hiring summary generation
+ * - Dynamic recommendations response
+ * - 3-tier confidence handling:
+ *     High (>= 0.75): Direct verified answer
+ *     Medium (0.45 - 0.74): Clarifying question with disambiguation suggestions
+ *     Low (< 0.45): Relevant topics & fallback suggestions
+ * - Deduplication of response lines and strict refusal to invent missing facts
  */
 
 import defaultKnowledge, { retrieveKnowledge, PORTFOLIO_LINKS } from '../data/chatbotKnowledge';
 import { createKnowledgeGraph } from '../data/knowledgeGraph';
+import { classifyConfidence } from './fuzzyMatcher';
 import { matchIntent } from './intentMatcher';
-import { getRecommendations } from './recommendationEngine';
+import { getRecommendations, getStructuredRecommendations } from './recommendationEngine';
 
 export const EXACT_FALLBACK_MESSAGE =
   "I'm not sure about that yet! You can ask me about Jatin's skills, projects, education, certifications or achievements.";
+
+export const RELEVANT_TOPICS = [
+  'Technical Skills & Programming Languages',
+  'Featured AI/ML & Full-Stack Projects',
+  'Education & Academic Background',
+  'Verified Certifications',
+  'Hackathons & Achievements',
+  'Recruiter & Hiring Information',
+  'Contact, GitHub & LinkedIn Links',
+];
+
+/**
+ * Removes duplicate bullet lines within a response while preserving paragraph structure.
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+export function deduplicateResponseLines(text = '') {
+  if (typeof text !== 'string' || !text) return '';
+  const seenBullets = new Set();
+  const lines = text.split('\n');
+  const filtered = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('•')) {
+      const normalizedBullet = trimmed.toLowerCase();
+      if (seenBullets.has(normalizedBullet)) {
+        continue;
+      }
+      seenBullets.add(normalizedBullet);
+    }
+    filtered.push(line);
+  }
+
+  return filtered.join('\n');
+}
 
 /**
  * Builds response text and metadata for a matched intent result.
@@ -19,7 +66,6 @@ export const EXACT_FALLBACK_MESSAGE =
  * @param {object} matchResult
  * @param {object} [knowledge=defaultKnowledge]
  * @param {object} [context=null]
- * @returns {{ intent: string, reply: string, suggestions: string[], confidence: number }}
  */
 export function generateResponse(matchResult, knowledge = defaultKnowledge, context = null) {
   const kb = knowledge || defaultKnowledge;
@@ -28,6 +74,7 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
   const intro = kb.personalIntroduction || {};
   const eduList = kb.education || [];
   const skills = kb.technicalSkills || {};
+  const langList = kb.programmingLanguages || [];
   const projectList = kb.projects || [];
   const certList = kb.certifications || [];
   const achievementList = kb.achievements || [];
@@ -35,40 +82,62 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
   const contact = kb.contactInfo || {};
 
   const intent = matchResult?.intent || 'fallback';
-  const suggestions = getRecommendations(matchResult, context, kb);
   const confidence = matchResult?.confidence ?? 0;
+  const confidenceLevel = matchResult?.confidenceLevel || classifyConfidence(confidence);
+  const suggestions = getRecommendations(matchResult, context, kb);
+  const recommendations = getStructuredRecommendations(matchResult, context, kb);
+
+  const finalize = (payload) => ({
+    ...payload,
+    reply: deduplicateResponseLines(payload.reply),
+    confidence: payload.confidence ?? confidence,
+    confidenceLevel: payload.confidenceLevel || confidenceLevel,
+    suggestions: payload.suggestions || suggestions,
+    recommendations,
+    relevantTopics: RELEVANT_TOPICS,
+  });
+
+  // Handle Medium-Confidence Ambiguous / Clarifying Questions
+  if (intent === 'clarification' || (confidenceLevel === 'medium' && matchResult?.clarifyingQuestion)) {
+    return finalize({
+      intent: 'clarification',
+      confidence: confidence || 0.58,
+      confidenceLevel: 'medium',
+      reply:
+        `🤔 **Clarification Needed:**\n\n` +
+        `${matchResult.clarifyingQuestion}\n\n` +
+        `You can select one of the suggested questions below or specify the exact topic:`,
+    });
+  }
 
   switch (intent) {
     case 'greeting':
-      return {
+      return finalize({
         intent: 'greeting',
-        confidence,
         reply:
           `Hello! 👋 I'm **${kb.config?.botName || 'Jatin AI'}**, Jatin Patil's personal portfolio assistant.\n\n` +
           `How can I help you today? You can ask me about Jatin's **skills**, **projects**, **education**, **certifications**, **achievements**, or **contact links**.`,
-        suggestions,
-      };
+      });
 
     case 'bot_help':
-      return {
+      return finalize({
         intent: 'bot_help',
-        confidence,
         reply:
-          `I'm **${kb.config?.botName || 'Jatin AI'}** (v${kb.config?.version || '3.0'}) — a fast, offline portfolio assistant built for **${intro.name}**.\n\n` +
-          `Here are things you can ask me:\n` +
+          `I'm **${kb.config?.botName || 'Jatin AI'}** (v${kb.config?.version || '3.0'}) — a custom, **API-free natural-language question matching assistant** built for **${intro.name}**.\n\n` +
+          `*Note: I am a deterministic rule-based and knowledge-graph engine (not an LLM or unrestricted reasoning model). I answer strictly from Jatin's verified portfolio data.*\n\n` +
+          `Here are topics you can ask me about:\n` +
           `• **Introduction:** Who is Jatin & what are his interests?\n` +
-          `• **Skills:** Programming languages, AI/ML & web stack\n` +
-          `• **Projects:** Featured AI/ML & Full-Stack work\n` +
+          `• **Skills & Languages:** Programming languages, AI/ML & web stack\n` +
+          `• **Projects:** Featured AI/ML & Full-Stack work (plus follow-up questions)\n` +
           `• **Education:** University, degree, year & semester\n` +
-          `• **Certifications & Achievements:** Verified credentials & activities\n` +
-          `• **Contact & Links:** GitHub, LinkedIn, Portfolio & Email`,
-        suggestions,
-      };
+          `• **Certifications & Achievements:** Verified credentials & hackathons\n` +
+          `• **Recruiter Info, Comparisons & Links:** Hiring summary, project comparisons, GitHub, LinkedIn & Email`,
+      });
 
     case 'about':
-      return {
+    case 'introduction':
+      return finalize({
         intent: 'about',
-        confidence,
         reply:
           `**${intro.fullName || intro.name}** is a **B.E. Computer Engineering student** (3rd Year, Sem 6) based in **${intro.location}**.\n\n` +
           `${intro.summary}\n\n` +
@@ -76,20 +145,18 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
           `• **Currently Learning:** ${(intro.currentlyLearning || []).join(', ')}\n` +
           `• **Activities:** ${(intro.activities || []).join(', ')}\n` +
           `• **Portfolio:** ${contact.portfolio}`,
-        suggestions,
-      };
+      });
 
     case 'interests_learning':
-      return {
+      return finalize({
         intent: 'interests_learning',
-        confidence,
         reply:
           `Here is what **${intro.name}** is passionate about and currently studying:\n\n` +
           `• **Core Interests:** ${(intro.interests || []).join(', ')}\n` +
           `• **Currently Learning:** ${(intro.currentlyLearning || []).join(', ')}\n` +
-          `• **Campus Activity:** ${(intro.activities || []).join(', ')}`,
-        suggestions,
-      };
+          `• **Campus Activity:** ${(intro.activities || []).join(', ')}\n` +
+          `• **Skills Section:** ${PORTFOLIO_LINKS.skills}`,
+      });
 
     case 'education': {
       const verifiedEdu = eduList.filter((item) => item.verificationStatus !== 'incomplete');
@@ -97,16 +164,37 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
         (item) =>
           `• **${item.degree}** — ${item.institution} (${item.period} | ${item.status})`
       );
-      return {
+
+      const unverifiedPrefix =
+        matchResult?.unverifiedTopic === 'cgpa'
+          ? `ℹ️ *Note: Jatin's exact university CGPA/SPI for his ongoing B.E. program is not publicly listed on the portfolio, so I do not invent unverified figures. Here is his verified academic record:*\n\n`
+          : '';
+
+      return finalize({
         intent: 'education',
-        confidence,
         reply:
-          `🎓 **${intro.name}'s Academic Background:**\n\n` +
+          `${unverifiedPrefix}🎓 **${intro.name}'s Academic Background:**\n\n` +
           lines.join('\n') +
           `\n\nHe is currently in **3rd Year (Sem 6)**, specializing in **Data Science**.\n` +
           `• **Education Section:** ${PORTFOLIO_LINKS.education}`,
-        suggestions,
-      };
+      });
+    }
+
+    case 'programming_languages': {
+      const langLines = langList.map(
+        (lang) => `• **${lang.title}:** ${lang.description}`
+      );
+
+      return finalize({
+        intent: 'programming_languages',
+        reply:
+          `💻 **${intro.name}'s Programming Languages:**\n\n` +
+          `• **Core Languages:** ${(skills.coreProgramming || []).join(', ')}\n` +
+          `• **Additional & Query Languages:** ${(skills.additionalLanguages || []).join(', ')}\n\n` +
+          `**Verified Usage Across Portfolio:**\n` +
+          langLines.join('\n') +
+          `\n\n• **Skills Section:** ${PORTFOLIO_LINKS.skills}`,
+      });
     }
 
     case 'skills': {
@@ -123,9 +211,8 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
         prefix = `Yes! **${matchedSkill}** is part of Jatin's technical toolkit.${projectNote}\n\n`;
       }
 
-      return {
+      return finalize({
         intent: 'skills',
-        confidence,
         reply:
           `${prefix}💻 **${intro.name}'s Technical Skills:**\n\n` +
           `• **Programming:** ${[...(skills.coreProgramming || []), ...(skills.additionalLanguages || [])].join(', ')}\n` +
@@ -134,11 +221,56 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
           `• **Cybersecurity & Cloud:** ${(skills.cybersecurityAndCloud || []).join(', ')}\n` +
           `• **Tools & Platforms:** ${(skills.toolsAndPlatforms || []).join(', ')}\n\n` +
           `Explore the full Tech Arsenal at ${PORTFOLIO_LINKS.skills}`,
-        suggestions,
-      };
+      });
     }
 
     case 'project_detail': {
+      // Handle multi-turn contextual list filtering (e.g. "Which one uses Python?" after "Tell me about Jatin's projects")
+      if (
+        matchResult?.followUpType === 'project_list_filter' ||
+        matchResult?.followUpType === 'project_list_demo_filter'
+      ) {
+        const filteredProjects = matchResult.matchedProjects || [];
+        const filterLabel =
+          matchResult.followUpType === 'project_list_demo_filter'
+            ? 'a live interactive demo'
+            : `**${matchResult.matchedSkill || 'that technology'}**`;
+
+        if (filteredProjects.length === 0) {
+          return finalize({
+            intent: 'project_detail',
+            reply:
+              `None of the previously listed projects in Jatin's portfolio explicitly list ${filterLabel}.\n\n` +
+              `His verified projects primarily use **Python, React, TypeScript, Node.js, TensorFlow, OpenCV, Pandas, Firebase, MongoDB, and Tailwind CSS**.\n` +
+              `• **Explore Projects:** ${PORTFOLIO_LINKS.projects}`,
+          });
+        }
+
+        const lines = filteredProjects.map((p) => {
+          const links = [
+            p.liveUrl ? `Live: ${p.liveUrl}` : null,
+            p.github ? `GitHub: ${p.github}` : null,
+          ]
+            .filter(Boolean)
+            .join(' | ');
+          const linkText = links ? ` (${links})` : '';
+          return `• **${p.title}** (${p.category}): ${p.description} *[Tech: ${(p.tech || []).join(', ')}]*${linkText}`;
+        });
+
+        const headingVerb =
+          filteredProjects.length === 1
+            ? 'this project matches'
+            : `these **${filteredProjects.length} projects** match`;
+
+        return finalize({
+          intent: 'project_detail',
+          reply:
+            `🔍 Resolving against Jatin's projects — ${headingVerb} ${filterLabel}:\n\n` +
+            lines.join('\n') +
+            `\n\n• **Projects Section:** ${PORTFOLIO_LINKS.projects}`,
+        });
+      }
+
       const specificProject = matchResult?.matchedProject;
       if (specificProject) {
         const repoLine = specificProject.github
@@ -149,9 +281,8 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
           : '';
         const sectionLine = `\n• **Portfolio Section:** ${specificProject.portfolioLink || PORTFOLIO_LINKS.projects}`;
 
-        return {
+        return finalize({
           intent: 'project_detail',
-          confidence,
           reply:
             `🚀 **${specificProject.title}** (${specificProject.category})\n\n` +
             `${specificProject.description}\n\n` +
@@ -159,10 +290,9 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
             repoLine +
             demoLine +
             sectionLine,
-          suggestions,
-        };
+        });
       }
-      // Fall through to all projects if no specific project object
+
       return generateResponse({ ...matchResult, intent: 'projects' }, kb, context);
     }
 
@@ -172,32 +302,39 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
         return `• **${p.title}** (${p.category}): ${p.description} *[${(p.tech || []).join(', ')}]*${linkSuffix}`;
       });
 
-      return {
+      return finalize({
         intent: 'projects',
-        confidence,
         reply:
           `🚀 **${intro.name}'s Projects:**\n\n` +
           projectLines.join('\n') +
           `\n\n• **Featured Work:** ${PORTFOLIO_LINKS.projects}\n` +
           `• **All Repositories on GitHub:** ${contact.github}`,
-        suggestions,
-      };
+      });
     }
 
     case 'certifications': {
-      const certLines = certList.map(
+      const targetCerts =
+        Array.isArray(matchResult?.matchedCertifications) &&
+        matchResult.matchedCertifications.length > 0
+          ? matchResult.matchedCertifications
+          : certList;
+
+      const certLines = targetCerts.map(
         (c) => `• **${c.title}** — *${c.issuer}*${c.date ? ` (${c.date})` : ''}`
       );
 
-      return {
+      const header =
+        matchResult?.followUpType === 'certification_list_filter'
+          ? `📜 **Matching Certifications from Jatin's Credentials:**\n\n`
+          : `📜 **${intro.name}'s Verified Certifications:**\n\n`;
+
+      return finalize({
         intent: 'certifications',
-        confidence,
         reply:
-          `📜 **${intro.name}'s Verified Certifications:**\n\n` +
+          header +
           certLines.join('\n') +
           `\n\nYou can view and verify all certificates at ${PORTFOLIO_LINKS.certifications}`,
-        suggestions,
-      };
+      });
     }
 
     case 'achievements': {
@@ -205,15 +342,13 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
         (a) => `• **${a.title}:** ${a.description}`
       );
 
-      return {
+      return finalize({
         intent: 'achievements',
-        confidence,
         reply:
           `🏆 **${intro.name}'s Achievements & Activities:**\n\n` +
           achLines.join('\n') +
           `\n\n• **Hackathon Credentials:** ${PORTFOLIO_LINKS.hackathons}`,
-        suggestions,
-      };
+      });
     }
 
     case 'experience': {
@@ -222,95 +357,165 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
         (e) => `• **${e.role}** — *${e.organization}* (${e.period}): ${e.details}`
       );
 
-      return {
+      return finalize({
         intent: 'experience',
-        confidence,
         reply:
           `💼 **${intro.name}'s Experience & Leadership:**\n\n` +
           expLines.join('\n') +
           `\n\n**Availability:** ${contact.availability}\n` +
           `• **Portfolio:** ${PORTFOLIO_LINKS.portfolio}`,
-        suggestions,
-      };
+      });
+    }
+
+    case 'recruiter_info': {
+      return finalize({
+        intent: 'recruiter_info',
+        reply:
+          `📋 **Recruiter & Hiring Summary — ${intro.fullName || intro.name}:**\n\n` +
+          `• **Current Academic Status:** B.E. Computer Engineering (3rd Year, Sem 6) at UPL University of Sustainable Technology, specializing in **Data Science**.\n` +
+          `• **Target Roles:** AI/ML Intern, Data Science Intern, and Full-Stack Web Developer.\n` +
+          `• **Core Technical Stack:** Python, JavaScript, TypeScript, Java, React, Node.js, TensorFlow, OpenCV, Pandas, Scikit-Learn, Tailwind CSS, Firebase, MongoDB.\n` +
+          `• **Key Production & AI Projects:** AI Study Assistant (StudyMate AI), AI Web Clone Builder, Smart City Traffic Analyzer, and AI-Powered Sales Forecaster.\n` +
+          `• **Leadership & Credentials:** Google Student Ambassador, 8 verified certifications (Google/Coursera, Microsoft Learn, IICT, CodeWithHarry, LetsUpgrade), and 2 national hackathon certificates.\n` +
+          `• **Availability:** ${contact.availability}\n` +
+          `• **Direct Contact:** mailto:${contact.email} | LinkedIn: ${contact.linkedin} | GitHub: ${contact.github}`,
+      });
+    }
+
+    case 'comparisons': {
+      const comparedProjects = matchResult?.matchedProjects || [];
+      const comparedSkills = matchResult?.matchedSkills || [];
+
+      if (comparedProjects.length >= 2) {
+        const [p1, p2] = comparedProjects;
+        return finalize({
+          intent: 'comparisons',
+          reply:
+            `⚖️ **Project Comparison: ${p1.title} vs ${p2.title}**\n\n` +
+            `• **${p1.title}** (${p1.category}): ${p1.description}\n` +
+            `  *Tech Stack:* ${(p1.tech || []).join(', ')}${p1.liveUrl ? ` | Live: ${p1.liveUrl}` : ''}\n` +
+            `• **${p2.title}** (${p2.category}): ${p2.description}\n` +
+            `  *Tech Stack:* ${(p2.tech || []).join(', ')}${p2.liveUrl ? ` | Live: ${p2.liveUrl}` : ''}\n\n` +
+            `• **All Projects:** ${PORTFOLIO_LINKS.projects}`,
+        });
+      }
+
+      if (comparedSkills.length >= 2) {
+        const [s1, s2] = comparedSkills;
+        const s1Projects = graph.getProjectsBySkill(s1).map((p) => p.title);
+        const s2Projects = graph.getProjectsBySkill(s2).map((p) => p.title);
+        return finalize({
+          intent: 'comparisons',
+          reply:
+            `⚖️ **Skill Comparison in Jatin's Portfolio: ${s1} vs ${s2}**\n\n` +
+            `• **${s1}:** Used in ${s1Projects.length > 0 ? s1Projects.join(', ') : 'core programming & academic coursework'}.\n` +
+            `• **${s2}:** Used in ${s2Projects.length > 0 ? s2Projects.join(', ') : 'core programming & web/software stack'}.\n\n` +
+            `• **Skills Section:** ${PORTFOLIO_LINKS.skills}`,
+        });
+      }
+
+      return finalize({
+        intent: 'comparisons',
+        reply:
+          `⚖️ **Comparing Jatin's Core Engineering Domains:**\n\n` +
+          `• **AI/ML & Data Science Track:** Uses **Python, TensorFlow, OpenCV, Pandas, Scikit-Learn, and Linear Regression** in projects like **Smart City Traffic Analyzer** and **AI-Powered Sales Forecaster**.\n` +
+          `• **Full-Stack & AI Web Track:** Uses **React, TypeScript, Node.js, Tailwind CSS, Firebase, MongoDB, and Gemini AI** in live SaaS apps like **AI Study Assistant (StudyMate AI)** and **AI Web Clone Builder**.\n\n` +
+          `• **Compare Live Projects:** ${PORTFOLIO_LINKS.projects}`,
+      });
+    }
+
+    case 'recommendations': {
+      const projLines = recommendations.projects.map(
+        (p) => `• **${p.title}** (${p.category}) — *${p.reason}*: ${p.link}`
+      );
+      const secLines = recommendations.sections.map(
+        (s) => `• **${s.title}:** ${s.reason} (${s.link})`
+      );
+
+      return finalize({
+        intent: 'recommendations',
+        reply:
+          `✨ **Recommended Highlights for You:**\n\n` +
+          `**Featured Projects to Explore:**\n` +
+          projLines.join('\n') +
+          `\n\n**Key Skills to Check Out:**\n` +
+          `• ${recommendations.skills.join(', ')}\n\n` +
+          `**Suggested Portfolio Sections:**\n` +
+          secLines.join('\n'),
+      });
     }
 
     case 'github_link':
-      return {
+      return finalize({
         intent: 'github_link',
-        confidence,
         reply:
           `🐙 **Jatin's GitHub Profile:**\n${contact.github}\n\n` +
           `Check it out to explore his AI/ML, Data Science, and Full-Stack repositories!`,
-        suggestions,
-      };
+      });
 
     case 'linkedin_link':
-      return {
+      return finalize({
         intent: 'linkedin_link',
-        confidence,
         reply:
           `💼 **Jatin's LinkedIn Profile:**\n${contact.linkedin}\n\n` +
           `Feel free to connect with Jatin on LinkedIn for networking, internships, or collaborations!`,
-        suggestions,
-      };
+      });
 
     case 'portfolio_link':
-      return {
+      return finalize({
         intent: 'portfolio_link',
-        confidence,
         reply:
           `🌐 **Jatin's Official Portfolio Links:**\n\n` +
           `• **Portfolio Website:** ${contact.portfolio}\n` +
           `• **GitHub:** ${contact.github}\n` +
           `• **LinkedIn:** ${contact.linkedin}`,
-        suggestions,
-      };
+      });
 
-    case 'contact':
-      return {
+    case 'contact': {
+      const phoneNote =
+        matchResult?.unverifiedTopic === 'phone'
+          ? `ℹ️ *Note: Jatin's personal phone/WhatsApp number is not publicly listed on the portfolio for privacy. You can reach him directly via his verified channels below:*\n\n`
+          : '';
+
+      return finalize({
         intent: 'contact',
-        confidence,
         reply:
-          `📬 **Connect with ${intro.name}:**\n\n` +
+          `${phoneNote}📬 **Connect with ${intro.name}:**\n\n` +
           `• **Email:** mailto:${contact.email}\n` +
           `• **LinkedIn:** ${contact.linkedin}\n` +
           `• **GitHub:** ${contact.github}\n` +
           `• **Portfolio:** ${contact.portfolio}\n` +
           `• **Location:** ${contact.location}`,
-        suggestions,
-      };
+      });
+    }
 
     case 'thanks':
-      return {
+      return finalize({
         intent: 'thanks',
-        confidence,
         reply:
           `You're very welcome! 😊 Let me know if you'd like to explore anything else about Jatin's **projects**, **skills**, or **contact details**.`,
-        suggestions,
-      };
+      });
 
     case 'goodbye':
-      return {
+      return finalize({
         intent: 'goodbye',
-        confidence,
         reply:
           `Thanks for stopping by Jatin's portfolio! 👋 Have a great day, and feel free to connect via LinkedIn (${contact.linkedin}) or email (mailto:${contact.email}).`,
-        suggestions,
-      };
+      });
 
     case 'fallback':
     default:
-      return {
+      return finalize({
         intent: 'fallback',
         confidence: 0,
+        confidenceLevel: 'low',
         reply: kb.config?.fallbackMessage || EXACT_FALLBACK_MESSAGE,
-        suggestions,
-      };
+      });
   }
 }
 
 /**
- * Convenience pipeline that matches intent and generates response in one call.
+ * Convenience pipeline that matches intent, resolves context, and generates response in one call.
  *
  * @param {string} userInput
  * @param {object} [knowledge=defaultKnowledge]
@@ -332,8 +537,10 @@ export function matchChatbotResponse(userInput, knowledge = defaultKnowledge, co
     return {
       intent: 'fallback',
       confidence: 0,
+      confidenceLevel: 'low',
       reply: EXACT_FALLBACK_MESSAGE,
       suggestions: defaultKnowledge.config?.suggestedQuestions?.slice(0, 4) || [],
+      relevantTopics: RELEVANT_TOPICS,
     };
   }
 }
