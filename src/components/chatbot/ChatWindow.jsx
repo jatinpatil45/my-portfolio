@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import {
   Bot,
   RotateCcw,
@@ -56,6 +57,8 @@ const STARTER_CARDS = [
  * Renders the glassmorphic dialog header, Recruiter Mode banner, session history view
  * with empty state, message stream with rich cards, scroll-to-bottom button,
  * context-aware quick replies, and voice-enabled input bar.
+ *
+ * Enforces strict scroll isolation between the bot window and the background page.
  */
 const ChatWindow = ({
   config,
@@ -92,10 +95,111 @@ const ChatWindow = ({
   messagesEndRef,
   inputRef,
 }) => {
+  const windowRef = useRef(null);
+  const historyPanelRef = useRef(null);
+  const touchStartYRef = useRef(0);
+
   const showStarterGrid = messages.length <= 1 && !isTyping;
+
+  // Strict scroll isolation: wheel & touch scrolling inside the bot window
+  // only scrolls the bot's active scroll container and never scrolls the background page.
+  useEffect(() => {
+    const winEl = windowRef.current;
+    if (!winEl) return;
+
+    const onWheel = (event) => {
+      event.stopPropagation();
+
+      const activeScrollEl = showHistory
+        ? historyPanelRef.current
+        : messagesContainerRef?.current;
+
+      if (!activeScrollEl) {
+        event.preventDefault();
+        return;
+      }
+
+      const deltaY = event.deltaY;
+      const isInsideScrollArea = activeScrollEl.contains(event.target);
+
+      // If scrolling over the bot header, recruiter bar, quick replies, or input bar,
+      // route the wheel delta directly to the bot's message list and block page scroll.
+      if (!isInsideScrollArea) {
+        event.preventDefault();
+        activeScrollEl.scrollTop += deltaY;
+        return;
+      }
+
+      const { scrollTop, scrollHeight, clientHeight } = activeScrollEl;
+      const canScrollUp = scrollTop > 0;
+      const canScrollDown = scrollTop + clientHeight < scrollHeight - 1;
+
+      // Prevent wheel scroll chaining into the background page at top/bottom boundaries
+      // or when message content is shorter than the window height.
+      if (
+        scrollHeight <= clientHeight ||
+        (deltaY < 0 && !canScrollUp) ||
+        (deltaY > 0 && !canScrollDown)
+      ) {
+        event.preventDefault();
+      }
+    };
+
+    const onTouchStart = (event) => {
+      if (event.touches && event.touches.length === 1) {
+        touchStartYRef.current = event.touches[0].clientY;
+      }
+    };
+
+    const onTouchMove = (event) => {
+      event.stopPropagation();
+      if (!event.touches || event.touches.length !== 1) return;
+
+      const activeScrollEl = showHistory
+        ? historyPanelRef.current
+        : messagesContainerRef?.current;
+
+      if (!activeScrollEl) {
+        if (event.cancelable) event.preventDefault();
+        return;
+      }
+
+      const currentY = event.touches[0].clientY;
+      const deltaY = touchStartYRef.current - currentY;
+      const isInsideScrollArea = activeScrollEl.contains(event.target);
+
+      if (!isInsideScrollArea) {
+        if (event.cancelable) event.preventDefault();
+        return;
+      }
+
+      const { scrollTop, scrollHeight, clientHeight } = activeScrollEl;
+      const canScrollUp = scrollTop > 0;
+      const canScrollDown = scrollTop + clientHeight < scrollHeight - 1;
+
+      if (
+        scrollHeight <= clientHeight ||
+        (deltaY < 0 && !canScrollUp) ||
+        (deltaY > 0 && !canScrollDown)
+      ) {
+        if (event.cancelable) event.preventDefault();
+      }
+    };
+
+    winEl.addEventListener('wheel', onWheel, { passive: false });
+    winEl.addEventListener('touchstart', onTouchStart, { passive: true });
+    winEl.addEventListener('touchmove', onTouchMove, { passive: false });
+
+    return () => {
+      winEl.removeEventListener('wheel', onWheel);
+      winEl.removeEventListener('touchstart', onTouchStart);
+      winEl.removeEventListener('touchmove', onTouchMove);
+    };
+  }, [showHistory, messagesContainerRef]);
 
   return (
     <section
+      ref={windowRef}
       className={`jatin-chatbot-window ${
         isClosing ? 'jatin-chatbot-window--closing' : 'jatin-chatbot-window--opening'
       } ${recruiterMode ? 'jatin-chatbot-window--recruiter' : ''}`}
@@ -284,7 +388,12 @@ const ChatWindow = ({
 
       {/* Session History View vs Messages Stream */}
       {showHistory ? (
-        <div className="jatin-chatbot-history-panel" role="region" aria-label="Session conversation history">
+        <div
+          ref={historyPanelRef}
+          className="jatin-chatbot-history-panel"
+          role="region"
+          aria-label="Session conversation history"
+        >
           <div className="jatin-chatbot-history-header">
             <div>
               <h3 className="jatin-chatbot-history-title">Session History</h3>
