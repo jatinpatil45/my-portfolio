@@ -1,10 +1,56 @@
 /**
- * Backward-Compatible Facade for Jatin AI 3.0 Matching Engine
+ * Unified Public Facade for Jatin AI 3.0 API-Free Intelligence Engine
  *
- * Re-exports `normalizeQuery` and `matchChatbotResponse` from the modular
- * Jatin AI 3.0 NLP & response pipeline.
+ * Re-exports all modular NLP, fuzzy matching, intent recognition,
+ * context resolution, recommendation, and response generation functions.
  */
 
-export { normalizeText, normalizeQuery, hasTerm } from './normalizeText';
-export { matchIntent } from './intentMatcher';
-export { generateResponse, matchChatbotResponse, EXACT_FALLBACK_MESSAGE } from './responseGenerator';
+export {
+  normalizeText,
+  normalizeQuery,
+  expandContractions,
+  normalizeSpellingVariations,
+  hasTerm,
+  STOP_WORDS,
+  CONTRACTIONS_MAP,
+  SPELLING_VARIATIONS,
+} from './normalizeText';
+
+export {
+  CONFIDENCE_THRESHOLDS,
+  classifyConfidence,
+  levenshteinDistance,
+  damerauLevenshteinDistance,
+  normalizedEditDistance,
+  similarityScore,
+  fuzzyMatchToken,
+  fuzzyMatchPhrase,
+  fuzzyScoreKeywords,
+} from './fuzzyMatcher';
+
+export {
+  matchIntent,
+  scoreIntentRule,
+  extractMentionedProjects,
+  extractMentionedSkills,
+  detectUnverifiedFactQuery,
+} from './intentMatcher';
+
+export {
+  createInitialContext,
+  resolveContextualFollowUp,
+  updateContext,
+} from './contextManager';
+
+export {
+  getRecommendations,
+  getStructuredRecommendations,
+} from './recommendationEngine';
+
+export {
+  generateResponse,
+  matchChatbotResponse,
+  deduplicateResponseLines,
+  EXACT_FALLBACK_MESSAGE,
+  RELEVANT_TOPICS,
+} from './responseGenerator';

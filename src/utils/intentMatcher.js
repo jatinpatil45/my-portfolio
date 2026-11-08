@@ -1,14 +1,25 @@
 /**
- * Intent & Entity Matcher for Jatin AI 3.0
+ * Intent, Synonym, Entity & Ambiguity Matcher for Jatin AI 3.0
  *
- * Combines phrase matching, keyword weighting, entity extraction (projects & skills),
- * typo-tolerant fuzzy matching, and multi-turn conversation context resolution.
+ * Implements:
+ * - Recognition for all 18 core & conversational intents
+ * - Synonym phrase matching ("Tell me about Jatin", "Who is Jatin?", "Introduce Jatin", etc.)
+ * - Fuzzy typo matching via normalized edit distance with confidence thresholds
+ * - Multi-turn context resolution (including "Which one uses Python?" against previous results)
+ * - Entity extraction for projects, skills, comparisons, and unverified/incomplete facts
+ * - Ambiguity & medium-confidence detection for clarifying questions
  */
 
 import defaultKnowledge from '../data/chatbotKnowledge';
-import { INTENTS, CONVERSATIONAL_INTENTS } from '../data/intents';
+import { INTENTS, CONVERSATIONAL_INTENTS, SYNONYM_GROUPS, FOLLOW_UP_PATTERNS } from '../data/intents';
 import { normalizeText, hasTerm } from './normalizeText';
-import { fuzzyScoreKeywords, similarityScore } from './fuzzyMatcher';
+import {
+  CONFIDENCE_THRESHOLDS,
+  classifyConfidence,
+  fuzzyMatchToken,
+  fuzzyScoreKeywords,
+  similarityScore,
+} from './fuzzyMatcher';
 import { resolveContextualFollowUp } from './contextManager';
 
 const RULE_ID_TO_INTENT = {
@@ -21,7 +32,7 @@ const RULE_ID_TO_INTENT = {
 
 /**
  * Calculates an intent score based on exact phrase matches (weight 6),
- * exact keyword matches (weight 3), and fuzzy typo matches (weight 2).
+ * exact keyword matches (weight 3), and fuzzy typo matches (weight 2.5).
  */
 export function scoreIntentRule(normalized, tokenSet, tokens, phrases = [], keywords = []) {
   let score = 0;
@@ -39,49 +50,16 @@ export function scoreIntentRule(normalized, tokenSet, tokens, phrases = [], keyw
   }
 
   if (score === 0 && tokens.length > 0) {
-    score += fuzzyScoreKeywords(tokens, keywords, 0.8);
+    score += fuzzyScoreKeywords(tokens, keywords, CONFIDENCE_THRESHOLDS.TOKEN_STRONG);
   }
 
   return score;
 }
 
 /**
- * Matches a user input string to a structured intent and extracted entities.
- *
- * @param {string} userInput
- * @param {object} [knowledge=defaultKnowledge]
- * @param {object} [context=null]
- * @returns {{
- *   intent: string,
- *   ruleId: string,
- *   confidence: number,
- *   matchedProject: object | null,
- *   matchedSkill: string | null,
- *   followUpType: string | null,
- *   normalized: string,
- *   tokens: string[]
- * }}
+ * Extracts all projects mentioned in the user query (supports 1 or multiple projects for comparisons).
  */
-export function matchIntent(userInput, knowledge = defaultKnowledge, context = null) {
-  const kb = knowledge || defaultKnowledge;
-  const { normalized, tokens } = normalizeText(userInput);
-
-  if (!normalized) {
-    return {
-      intent: 'fallback',
-      ruleId: 'fallback',
-      confidence: 0,
-      matchedProject: null,
-      matchedSkill: null,
-      followUpType: null,
-      normalized: '',
-      tokens: [],
-    };
-  }
-
-  const tokenSet = new Set(tokens);
-
-  // 1. Check specific project mentions (exact terms or fuzzy alias match)
+export function extractMentionedProjects(normalized, tokenSet, tokens, kb = defaultKnowledge) {
   const defaultProjectMatchers = [
     {
       index: 0,
@@ -97,11 +75,14 @@ export function matchIntent(userInput, knowledge = defaultKnowledge, context = n
         'website builder',
       ],
     },
-    { index: 2, terms: ['smart city', 'traffic analyzer', 'traffic flow'] },
-    { index: 3, terms: ['sales forecaster', 'quarterly sales', 'sales trends'] },
+    { index: 2, terms: ['smart city', 'traffic analyzer', 'traffic flow', 'smart city traffic analyzer'] },
+    { index: 3, terms: ['sales forecaster', 'quarterly sales', 'sales trends', 'ai powered sales forecaster'] },
     { index: 4, terms: ['mern stack dashboard', 'mern dashboard', 'administrative dashboard'] },
-    { index: 5, terms: ['portfolio engine', 'this portfolio'] },
+    { index: 5, terms: ['portfolio engine', 'this portfolio', 'cyberpunk portfolio'] },
   ];
+
+  const matched = [];
+  let hasExact = false;
 
   for (const pm of defaultProjectMatchers) {
     const targetProject = kb.projects?.[pm.index];
@@ -118,35 +99,18 @@ export function matchIntent(userInput, knowledge = defaultKnowledge, context = n
       );
 
     if (exactMatch || fuzzyAliasMatch) {
-      return {
-        intent: 'project_detail',
-        ruleId: 'project_detail',
-        confidence: exactMatch ? 0.98 : 0.85,
-        matchedProject: targetProject,
-        matchedSkill: null,
-        followUpType: null,
-        normalized,
-        tokens,
-      };
+      if (exactMatch) hasExact = true;
+      matched.push(targetProject);
     }
   }
 
-  // 2. Check multi-turn contextual follow-up (e.g. "tell me more about it", "live demo link")
-  const contextual = resolveContextualFollowUp(normalized, tokenSet, context);
-  if (contextual.isFollowUp && contextual.targetProject) {
-    return {
-      intent: 'project_detail',
-      ruleId: 'project_detail',
-      confidence: 0.9,
-      matchedProject: contextual.targetProject,
-      matchedSkill: null,
-      followUpType: contextual.followUpType,
-      normalized,
-      tokens,
-    };
-  }
+  return { matchedProjects: matched, hasExact };
+}
 
-  // 3. Check specific skill recognition (e.g., "Does Jatin know Python?")
+/**
+ * Extracts all skills/languages mentioned in the user query.
+ */
+export function extractMentionedSkills(normalized, tokenSet, kb = defaultKnowledge) {
   const allSkills = [
     ...(kb.technicalSkills?.coreProgramming || []),
     ...(kb.technicalSkills?.additionalLanguages || []),
@@ -155,50 +119,372 @@ export function matchIntent(userInput, knowledge = defaultKnowledge, context = n
     ...(kb.technicalSkills?.toolsAndPlatforms || []),
   ];
 
-  const matchedSpecificSkill =
-    allSkills.find((skill) => {
-      const cleanSkill = skill.toLowerCase();
-      if (cleanSkill === 'c') return tokenSet.has('c');
-      return hasTerm(normalized, tokenSet, cleanSkill);
-    }) || null;
+  const found = [];
+  const seen = new Set();
 
-  // 4. Exact short name queries (e.g., user just types "Jatin" or "Jatin Patil")
+  for (const skill of allSkills) {
+    const cleanSkill = skill.toLowerCase();
+    if (seen.has(cleanSkill)) continue;
+    const isMatch = cleanSkill === 'c' ? tokenSet.has('c') : hasTerm(normalized, tokenSet, cleanSkill);
+    if (isMatch) {
+      seen.add(cleanSkill);
+      found.push(skill);
+    }
+  }
+
+  return found;
+}
+
+/**
+ * Detects whether the user is asking about a known unverified/incomplete fact
+ * (such as university CGPA/GPA or personal phone/WhatsApp number) so the engine
+ * never invents missing facts.
+ */
+export function detectUnverifiedFactQuery(normalized, tokenSet) {
+  const cgpaTerms = ['cgpa', 'gpa', 'spi', 'cpi', 'college marks', 'university grades', 'semester marks'];
+  if (cgpaTerms.some((term) => hasTerm(normalized, tokenSet, term))) {
+    return 'cgpa';
+  }
+
+  const phoneTerms = ['phone', 'mobile', 'whatsapp', 'phone number', 'contact number', 'mobile number', 'cellphone'];
+  if (phoneTerms.some((term) => hasTerm(normalized, tokenSet, term))) {
+    return 'phone';
+  }
+
+  return null;
+}
+
+/**
+ * Detects ambiguous queries that warrant a medium-confidence clarifying question.
+ */
+function detectAmbiguousQuery(normalized, tokenSet, tokens, context, kb = defaultKnowledge) {
+  // 1. Follow-up phrases used without any prior conversation context
+  const isBareFollowUp =
+    (!context || !context.lastIntent) &&
+    (FOLLOW_UP_PATTERNS.moreDetails.some((p) => normalized === p) ||
+      FOLLOW_UP_PATTERNS.listFilter.some((p) => normalized === p) ||
+      normalized === 'which one' ||
+      normalized === 'tell me more' ||
+      normalized === 'more details' ||
+      normalized === 'elaborate');
+
+  if (isBareFollowUp) {
+    return {
+      isAmbiguous: true,
+      clarificationType: 'missing_context',
+      confidence: 0.55,
+      candidateTopics: ['Projects', 'Technical Skills', 'Education', 'Certifications'],
+      clarifyingQuestion:
+        "Could you clarify which topic you'd like more details on? We haven't selected a specific project or section yet.",
+      suggestions: [
+        "Show me Jatin's projects",
+        "What are Jatin's technical skills?",
+        "What is Jatin's education?",
+        'What certifications does Jatin have?',
+      ],
+    };
+  }
+
+  // 2. Ambiguous singular reference to "the AI project" / "his AI project" (multiple AI projects exist)
   if (
-    normalized === 'jatin' ||
-    normalized === 'jatin patil' ||
-    normalized === 'jatin narayanbhai patil'
+    (hasTerm(normalized, tokenSet, 'the ai project') ||
+      hasTerm(normalized, tokenSet, 'his ai project') ||
+      normalized === 'ai project' ||
+      normalized === 'tell me about the ai project') &&
+    !normalized.includes('study') &&
+    !normalized.includes('clone') &&
+    !normalized.includes('sales') &&
+    !normalized.includes('traffic')
+  ) {
+    const aiProjects = (kb.projects || []).filter(
+      (p) => p.category === 'AI/ML' || p.category === 'Deep Learning' || (p.tech || []).some((t) => t.includes('AI'))
+    );
+    return {
+      isAmbiguous: true,
+      clarificationType: 'ambiguous_project',
+      confidence: 0.62,
+      candidateItems: aiProjects,
+      clarifyingQuestion:
+        'Jatin has built multiple AI and Machine Learning projects. Which one would you like to explore?',
+      suggestions: [
+        'Tell me about AI Study Assistant',
+        'Tell me about AI Web Clone Builder',
+        'Tell me about Smart City Traffic Analyzer',
+        'Tell me about AI-Powered Sales Forecaster',
+      ],
+    };
+  }
+
+  // 3. Ambiguous singular reference to "the bootcamp" (Python, Java, and JavaScript bootcamps exist)
+  if (
+    normalized === 'bootcamp' ||
+    normalized === 'the bootcamp' ||
+    normalized === 'tell me about the bootcamp' ||
+    normalized === 'which bootcamp'
   ) {
     return {
-      intent: 'about',
-      ruleId: 'about',
-      confidence: 0.95,
+      isAmbiguous: true,
+      clarificationType: 'ambiguous_certification',
+      confidence: 0.6,
+      clarifyingQuestion:
+        'Jatin has completed multiple programming bootcamps (Python, Java, and JavaScript). Would you like to see all of his certifications or focus on a specific language?',
+      suggestions: [
+        'What certifications does Jatin have?',
+        'What programming languages does Jatin know?',
+        "Show me Jatin's projects",
+      ],
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Matches a user input string to a structured intent, confidence level, and extracted entities.
+ *
+ * @param {string} userInput
+ * @param {object} [knowledge=defaultKnowledge]
+ * @param {object} [context=null]
+ */
+export function matchIntent(userInput, knowledge = defaultKnowledge, context = null) {
+  const kb = knowledge || defaultKnowledge;
+  const { normalized, tokens, keywords } = normalizeText(userInput);
+
+  if (!normalized) {
+    return {
+      intent: 'fallback',
+      ruleId: 'fallback',
+      confidence: 0,
+      confidenceLevel: 'low',
       matchedProject: null,
+      matchedProjects: [],
       matchedSkill: null,
+      matchedSkills: [],
+      followUpType: null,
+      normalized: '',
+      tokens: [],
+    };
+  }
+
+  const tokenSet = new Set(tokens);
+
+  // 0. Check for unverified/incomplete fact queries (e.g. CGPA, phone number)
+  const unverifiedTopic = detectUnverifiedFactQuery(normalized, tokenSet);
+  if (unverifiedTopic === 'cgpa') {
+    return {
+      intent: 'education',
+      ruleId: 'education',
+      confidence: 0.92,
+      confidenceLevel: 'high',
+      unverifiedTopic: 'cgpa',
+      matchedProject: null,
+      matchedProjects: [],
+      matchedSkill: null,
+      matchedSkills: [],
+      followUpType: null,
+      normalized,
+      tokens,
+    };
+  }
+  if (unverifiedTopic === 'phone') {
+    return {
+      intent: 'contact',
+      ruleId: 'contact',
+      confidence: 0.92,
+      confidenceLevel: 'high',
+      unverifiedTopic: 'phone',
+      matchedProject: null,
+      matchedProjects: [],
+      matchedSkill: null,
+      matchedSkills: [],
       followUpType: null,
       normalized,
       tokens,
     };
   }
 
-  // 5. Score all topic intent rules
-  let bestRule = null;
-  let bestScore = 0;
+  // 1. Check multi-turn contextual follow-up FIRST when user uses follow-up patterns
+  // (e.g., "Which one uses Python?", "Is there a live demo for it?", "Tell me about the first one")
+  const contextual = resolveContextualFollowUp(normalized, tokenSet, context, kb);
+  if (contextual.isFollowUp) {
+    if (contextual.followUpType === 'project_list_filter' || contextual.followUpType === 'project_list_demo_filter') {
+      return {
+        intent: 'project_detail',
+        ruleId: 'project_detail',
+        confidence: 0.94,
+        confidenceLevel: 'high',
+        matchedProject: contextual.targetProject || null,
+        matchedProjects: contextual.matchedProjects || [],
+        matchedSkill: contextual.targetSkill || null,
+        matchedSkills: contextual.targetSkill ? [contextual.targetSkill] : [],
+        followUpType: contextual.followUpType,
+        normalized,
+        tokens,
+      };
+    }
 
-  for (const rule of INTENTS) {
-    const score = scoreIntentRule(normalized, tokenSet, tokens, rule.phrases, rule.keywords);
-    if (score > bestScore) {
-      bestScore = score;
-      bestRule = rule;
+    if (contextual.followUpType === 'certification_list_filter') {
+      return {
+        intent: 'certifications',
+        ruleId: 'certifications',
+        confidence: 0.92,
+        confidenceLevel: 'high',
+        matchedProject: null,
+        matchedProjects: [],
+        matchedCertifications: contextual.matchedCertifications || [],
+        matchedSkill: null,
+        matchedSkills: [],
+        followUpType: contextual.followUpType,
+        normalized,
+        tokens,
+      };
+    }
+
+    if (contextual.targetProject) {
+      return {
+        intent: 'project_detail',
+        ruleId: 'project_detail',
+        confidence: 0.92,
+        confidenceLevel: 'high',
+        matchedProject: contextual.targetProject,
+        matchedProjects: [contextual.targetProject],
+        matchedSkill: null,
+        matchedSkills: [],
+        followUpType: contextual.followUpType,
+        normalized,
+        tokens,
+      };
     }
   }
+
+  // 2. Check for ambiguous queries requiring medium-confidence clarification
+  const ambiguity = detectAmbiguousQuery(normalized, tokenSet, tokens, context, kb);
+  if (ambiguity && ambiguity.isAmbiguous) {
+    return {
+      intent: 'clarification',
+      ruleId: 'clarification',
+      confidence: ambiguity.confidence,
+      confidenceLevel: 'medium',
+      isAmbiguous: true,
+      clarificationType: ambiguity.clarificationType,
+      clarifyingQuestion: ambiguity.clarifyingQuestion,
+      candidateItems: ambiguity.candidateItems || [],
+      candidateTopics: ambiguity.candidateTopics || [],
+      customSuggestions: ambiguity.suggestions,
+      matchedProject: null,
+      matchedProjects: [],
+      matchedSkill: null,
+      matchedSkills: [],
+      followUpType: null,
+      normalized,
+      tokens,
+    };
+  }
+
+  // 3. Extract mentioned projects and skills
+  const { matchedProjects, hasExact: hasExactProject } = extractMentionedProjects(
+    normalized,
+    tokenSet,
+    tokens,
+    kb
+  );
+  const matchedSkills = extractMentionedSkills(normalized, tokenSet, kb);
+  const matchedSpecificSkill = matchedSkills[0] || null;
+
+  // 4. Check explicit comparison intent (e.g., "Compare AI Study Assistant and AI Web Clone Builder" or "Python vs JavaScript")
+  const isComparisonQuery =
+    tokenSet.has('compare') ||
+    tokenSet.has('comparison') ||
+    tokenSet.has('comparisons') ||
+    tokenSet.has('vs') ||
+    tokenSet.has('versus') ||
+    hasTerm(normalized, tokenSet, 'difference between') ||
+    hasTerm(normalized, tokenSet, 'how do they compare');
+
+  if (isComparisonQuery || matchedProjects.length >= 2) {
+    return {
+      intent: 'comparisons',
+      ruleId: 'comparisons',
+      confidence: 0.94,
+      confidenceLevel: 'high',
+      matchedProject: matchedProjects[0] || null,
+      matchedProjects,
+      matchedSkill: matchedSpecificSkill,
+      matchedSkills,
+      followUpType: null,
+      normalized,
+      tokens,
+    };
+  }
+
+  // 5. Check single specific project mention (when not asking about a skill + project together)
+  if (matchedProjects.length === 1) {
+    const conf = hasExactProject ? 0.98 : 0.85;
+    return {
+      intent: 'project_detail',
+      ruleId: 'project_detail',
+      confidence: conf,
+      confidenceLevel: classifyConfidence(conf),
+      matchedProject: matchedProjects[0],
+      matchedProjects,
+      matchedSkill: matchedSpecificSkill,
+      matchedSkills,
+      followUpType: null,
+      normalized,
+      tokens,
+    };
+  }
+
+  // 6. Exact short name queries or synonym group matches for Introduction
+  if (
+    normalized === 'jatin' ||
+    normalized === 'jatin patil' ||
+    normalized === 'jatin narayanbhai patil' ||
+    SYNONYM_GROUPS.introduction.includes(normalized)
+  ) {
+    return {
+      intent: 'about',
+      ruleId: 'about',
+      confidence: 0.96,
+      confidenceLevel: 'high',
+      matchedProject: null,
+      matchedProjects: [],
+      matchedSkill: null,
+      matchedSkills: [],
+      followUpType: null,
+      normalized,
+      tokens,
+    };
+  }
+
+  // 7. Score all topic intent rules
+  const scoredRules = [];
+  for (const rule of INTENTS) {
+    const score = scoreIntentRule(normalized, tokenSet, tokens, rule.phrases, rule.keywords);
+    if (score > 0) {
+      scoredRules.push({ rule, score });
+    }
+  }
+
+  scoredRules.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return (b.rule.priority || 0) - (a.rule.priority || 0);
+  });
+
+  const bestEntry = scoredRules[0] || null;
+  const bestRule = bestEntry?.rule || null;
+  const bestScore = bestEntry?.score || 0;
 
   if (bestScore === 0 && matchedSpecificSkill) {
     return {
       intent: 'skills',
       ruleId: 'skills',
       confidence: 0.88,
+      confidenceLevel: 'high',
       matchedProject: null,
+      matchedProjects: [],
       matchedSkill: matchedSpecificSkill,
+      matchedSkills,
       followUpType: null,
       normalized,
       tokens,
@@ -206,21 +492,80 @@ export function matchIntent(userInput, knowledge = defaultKnowledge, context = n
   }
 
   if (bestRule && bestScore > 0) {
-    const canonicalIntent = RULE_ID_TO_INTENT[bestRule.id] || bestRule.id;
-    const confidence = Math.min(0.99, Number((0.65 + Math.min(bestScore, 12) * 0.028).toFixed(2)));
+    let canonicalIntent = RULE_ID_TO_INTENT[bestRule.id] || bestRule.id;
+
+    // Preserve backward compatibility with `skills` intent while tagging `programming_languages`
+    let subIntent = null;
+    if (canonicalIntent === 'programming_languages') {
+      // If user explicitly asks for programming languages, support both `skills` and `programming_languages` metadata
+      subIntent = 'programming_languages';
+    }
+
+    const confidence = Math.min(
+      0.99,
+      Number((0.68 + Math.min(bestScore, 12) * 0.026).toFixed(2))
+    );
+
     return {
       intent: canonicalIntent,
+      subIntent,
       ruleId: bestRule.id,
       confidence,
+      confidenceLevel: classifyConfidence(confidence),
       matchedProject: null,
-      matchedSkill: canonicalIntent === 'skills' ? matchedSpecificSkill : null,
+      matchedProjects: [],
+      matchedSkill:
+        canonicalIntent === 'skills' || canonicalIntent === 'programming_languages'
+          ? matchedSpecificSkill
+          : null,
+      matchedSkills,
       followUpType: null,
       normalized,
       tokens,
     };
   }
 
-  // 6. Conversational intents (checked after topic rules so "Hi, what are your skills?" answers skills)
+  // 8. Check moderate fuzzy match (0.72 <= similarity < 0.80) for Medium Confidence clarification
+  const allIntentKeywords = INTENTS.flatMap((r) =>
+    (r.keywords || []).map((kw) => ({ keyword: kw, rule: r }))
+  );
+  for (const tok of keywords) {
+    if (tok.length < 5) continue;
+    const candidates = allIntentKeywords.map((item) => item.keyword);
+    const { match, score } = fuzzyMatchToken(
+      tok,
+      candidates,
+      CONFIDENCE_THRESHOLDS.TOKEN_MODERATE
+    );
+    if (match && score >= CONFIDENCE_THRESHOLDS.TOKEN_MODERATE && score < CONFIDENCE_THRESHOLDS.TOKEN_STRONG) {
+      const matchedEntry = allIntentKeywords.find((item) => item.keyword === match);
+      if (matchedEntry) {
+        const candidateIntent =
+          RULE_ID_TO_INTENT[matchedEntry.rule.id] || matchedEntry.rule.id;
+        return {
+          intent: 'clarification',
+          ruleId: matchedEntry.rule.id,
+          candidateIntent,
+          matchedKeyword: match,
+          confidence: 0.58,
+          confidenceLevel: 'medium',
+          isAmbiguous: true,
+          clarificationType: 'fuzzy_confirmation',
+          clarifyingQuestion: `Did you mean to ask about Jatin's **${match}**? Here are a few related questions you can pick:`,
+          customSuggestions: matchedEntry.rule.defaultSuggestions,
+          matchedProject: null,
+          matchedProjects: [],
+          matchedSkill: null,
+          matchedSkills: [],
+          followUpType: null,
+          normalized,
+          tokens,
+        };
+      }
+    }
+  }
+
+  // 9. Conversational intents (checked after topic rules so "Hi, what are your skills?" answers skills)
   const greetingScore = scoreIntentRule(
     normalized,
     tokenSet,
@@ -233,8 +578,11 @@ export function matchIntent(userInput, knowledge = defaultKnowledge, context = n
       intent: 'greeting',
       ruleId: 'greeting',
       confidence: 0.95,
+      confidenceLevel: 'high',
       matchedProject: null,
+      matchedProjects: [],
       matchedSkill: null,
+      matchedSkills: [],
       followUpType: null,
       normalized,
       tokens,
@@ -253,8 +601,11 @@ export function matchIntent(userInput, knowledge = defaultKnowledge, context = n
       intent: 'thanks',
       ruleId: 'thanks',
       confidence: 0.95,
+      confidenceLevel: 'high',
       matchedProject: null,
+      matchedProjects: [],
       matchedSkill: null,
+      matchedSkills: [],
       followUpType: null,
       normalized,
       tokens,
@@ -273,21 +624,27 @@ export function matchIntent(userInput, knowledge = defaultKnowledge, context = n
       intent: 'goodbye',
       ruleId: 'goodbye',
       confidence: 0.95,
+      confidenceLevel: 'high',
       matchedProject: null,
+      matchedProjects: [],
       matchedSkill: null,
+      matchedSkills: [],
       followUpType: null,
       normalized,
       tokens,
     };
   }
 
-  // 7. Unrecognized question -> fallback
+  // 10. Unrecognized question -> Low confidence fallback
   return {
     intent: 'fallback',
     ruleId: 'fallback',
     confidence: 0,
+    confidenceLevel: 'low',
     matchedProject: null,
+    matchedProjects: [],
     matchedSkill: null,
+    matchedSkills: [],
     followUpType: null,
     normalized,
     tokens,
