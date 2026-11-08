@@ -8,7 +8,8 @@ import './PortfolioChatbot.css';
  *
  * Modular custom chatbot container uniting ChatWindow, ChatMessage,
  * QuickReplies, ChatInput, useChatbot state hook, knowledge graph,
- * intent/fuzzy matcher, voice service, and local analytics.
+ * intent/fuzzy matcher, Recruiter Mode, session history, voice controls,
+ * and local analytics.
  */
 const PortfolioChatbot = () => {
   const {
@@ -21,10 +22,24 @@ const PortfolioChatbot = () => {
     inputValue,
     setInputValue,
     isTyping,
+    recruiterMode,
+    toggleRecruiterMode,
+    showHistory,
+    toggleHistory,
+    sessionHistory,
+    copiedMessageId,
+    copyMessageText,
+    isScrolledUp,
+    handleMessagesScroll,
+    scrollToBottom,
+    error,
+    clearError,
+    retryLastMessage,
     voiceEnabled,
     isListening,
     speechRecognitionSupported,
     speechSynthesisSupported,
+    messagesContainerRef,
     messagesEndRef,
     inputRef,
     handleOpen,
@@ -34,6 +49,7 @@ const PortfolioChatbot = () => {
     handleClearChat,
     toggleVoiceOutput,
     toggleVoiceInput,
+    speakMessage,
   } = useChatbot();
 
   return (
@@ -51,12 +67,27 @@ const PortfolioChatbot = () => {
           onSendMessage={sendMessage}
           onClearChat={handleClearChat}
           onClose={handleClose}
+          recruiterMode={recruiterMode}
+          onToggleRecruiterMode={toggleRecruiterMode}
+          showHistory={showHistory}
+          onToggleHistory={toggleHistory}
+          sessionHistory={sessionHistory}
+          copiedMessageId={copiedMessageId}
+          onCopyMessage={copyMessageText}
+          isScrolledUp={isScrolledUp}
+          onMessagesScroll={handleMessagesScroll}
+          onScrollToBottom={scrollToBottom}
+          error={error}
+          onClearError={clearError}
+          onRetryLastMessage={retryLastMessage}
           voiceEnabled={voiceEnabled}
           onToggleVoiceOutput={toggleVoiceOutput}
           speechSynthesisSupported={speechSynthesisSupported}
           speechRecognitionSupported={speechRecognitionSupported}
           isListening={isListening}
           onToggleVoiceInput={toggleVoiceInput}
+          onSpeakMessage={speakMessage}
+          messagesContainerRef={messagesContainerRef}
           messagesEndRef={messagesEndRef}
           inputRef={inputRef}
         />

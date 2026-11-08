@@ -5,8 +5,8 @@
  * - Verified-only answer synthesis across all 18 intents
  * - Multi-turn contextual response formatting (e.g., resolving "Which one uses Python?" against previous projects)
  * - Side-by-side factual comparisons (projects, skills, domains)
- * - Recruiter & hiring summary generation
- * - Dynamic recommendations response
+ * - Recruiter & hiring summary generation + Recruiter Mode highlights
+ * - Dynamic recommendations response + structured UI cards (Projects, Certifications, Recruiter Brief)
  * - 3-tier confidence handling:
  *     High (>= 0.75): Direct verified answer
  *     Medium (0.45 - 0.74): Clarifying question with disambiguation suggestions
@@ -31,6 +31,14 @@ export const RELEVANT_TOPICS = [
   'Hackathons & Achievements',
   'Recruiter & Hiring Information',
   'Contact, GitHub & LinkedIn Links',
+];
+
+export const RECRUITER_SUGGESTIONS = [
+  'Why should we hire Jatin?',
+  "Show me Jatin's projects",
+  "What are Jatin's technical skills?",
+  'What certifications does Jatin have?',
+  'How can I contact Jatin?',
 ];
 
 /**
@@ -61,15 +69,120 @@ export function deduplicateResponseLines(text = '') {
 }
 
 /**
+ * Builds structured clickable action links for the UI based on intent and matched entities.
+ */
+function buildActionLinks(intent, matchResult, kb = defaultKnowledge) {
+  const contact = kb.contactInfo || {};
+  const links = [];
+
+  if (intent === 'project_detail' && matchResult?.matchedProject) {
+    const p = matchResult.matchedProject;
+    if (p.liveUrl) {
+      links.push({ label: 'Live Demo', url: p.liveUrl, type: 'live' });
+    }
+    if (p.github) {
+      links.push({ label: 'GitHub Repo', url: p.github, type: 'github' });
+    }
+    links.push({ label: 'Projects Section', url: PORTFOLIO_LINKS.projects, type: 'section' });
+    return links;
+  }
+
+  switch (intent) {
+    case 'projects':
+    case 'comparisons':
+      links.push(
+        { label: 'Projects Section', url: PORTFOLIO_LINKS.projects, type: 'section' },
+        { label: 'GitHub Profile', url: contact.github || PORTFOLIO_LINKS.github, type: 'github' }
+      );
+      break;
+    case 'skills':
+    case 'programming_languages':
+    case 'interests_learning':
+      links.push(
+        { label: 'Tech Arsenal', url: PORTFOLIO_LINKS.skills, type: 'section' },
+        { label: 'Featured Projects', url: PORTFOLIO_LINKS.projects, type: 'section' }
+      );
+      break;
+    case 'education':
+      links.push({ label: 'Education Section', url: PORTFOLIO_LINKS.education, type: 'section' });
+      break;
+    case 'certifications':
+      links.push({ label: 'Certifications Section', url: PORTFOLIO_LINKS.certifications, type: 'section' });
+      break;
+    case 'achievements':
+      links.push({ label: 'Hackathon Certificates', url: PORTFOLIO_LINKS.hackathons, type: 'section' });
+      break;
+    case 'recruiter_info':
+    case 'experience':
+    case 'contact':
+      links.push(
+        { label: 'Email Jatin', url: `mailto:${contact.email || 'jatinpatil2233@gmail.com'}`, type: 'email' },
+        { label: 'LinkedIn', url: contact.linkedin || PORTFOLIO_LINKS.linkedin, type: 'linkedin' },
+        { label: 'GitHub', url: contact.github || PORTFOLIO_LINKS.github, type: 'github' },
+        { label: 'Contact Section', url: PORTFOLIO_LINKS.contact, type: 'section' }
+      );
+      break;
+    case 'github_link':
+      links.push({ label: 'Open GitHub Profile', url: contact.github || PORTFOLIO_LINKS.github, type: 'github' });
+      break;
+    case 'linkedin_link':
+      links.push({ label: 'Open LinkedIn Profile', url: contact.linkedin || PORTFOLIO_LINKS.linkedin, type: 'linkedin' });
+      break;
+    case 'about':
+    case 'introduction':
+      links.push(
+        { label: 'About Section', url: PORTFOLIO_LINKS.about, type: 'section' },
+        { label: 'Projects Section', url: PORTFOLIO_LINKS.projects, type: 'section' }
+      );
+      break;
+    default:
+      links.push({ label: 'Explore Portfolio', url: PORTFOLIO_LINKS.portfolio, type: 'section' });
+      break;
+  }
+
+  return links;
+}
+
+/**
+ * Builds a concise recruiter takeaway badge when Recruiter Mode is active.
+ */
+function buildRecruiterHighlight(intent, kb = defaultKnowledge) {
+  const contact = kb.contactInfo || {};
+  switch (intent) {
+    case 'skills':
+    case 'programming_languages':
+      return 'Recruiter Takeaway: Combines Python AI/ML (TensorFlow, OpenCV, Scikit-Learn) with TypeScript/React/Node.js full-stack delivery.';
+    case 'projects':
+    case 'project_detail':
+    case 'comparisons':
+      return 'Recruiter Takeaway: Production-deployed AI SaaS apps on Vercel with public GitHub source repositories.';
+    case 'education':
+      return 'Recruiter Takeaway: 3rd Year (Sem 6) B.E. Computer Engineering student specializing in Data Science.';
+    case 'certifications':
+    case 'achievements':
+      return 'Recruiter Takeaway: 8 verified credentials (Google, Microsoft Learn, IICT, CodeWithHarry) + Google Student Ambassador.';
+    default:
+      return `Recruiter Takeaway: ${contact.availability || 'Open to internships and engineering roles.'}`;
+  }
+}
+
+/**
  * Builds response text and metadata for a matched intent result.
  *
  * @param {object} matchResult
  * @param {object} [knowledge=defaultKnowledge]
  * @param {object} [context=null]
+ * @param {object} [options={}]
  */
-export function generateResponse(matchResult, knowledge = defaultKnowledge, context = null) {
+export function generateResponse(
+  matchResult,
+  knowledge = defaultKnowledge,
+  context = null,
+  options = {}
+) {
   const kb = knowledge || defaultKnowledge;
   const graph = createKnowledgeGraph(kb);
+  const recruiterMode = Boolean(options?.recruiterMode);
 
   const intro = kb.personalIntroduction || {};
   const eduList = kb.education || [];
@@ -84,8 +197,14 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
   const intent = matchResult?.intent || 'fallback';
   const confidence = matchResult?.confidence ?? 0;
   const confidenceLevel = matchResult?.confidenceLevel || classifyConfidence(confidence);
-  const suggestions = getRecommendations(matchResult, context, kb);
+  const baseSuggestions = getRecommendations(matchResult, context, kb);
+  const suggestions =
+    recruiterMode && intent === 'greeting'
+      ? RECRUITER_SUGGESTIONS
+      : baseSuggestions;
   const recommendations = getStructuredRecommendations(matchResult, context, kb);
+  const links = buildActionLinks(intent, matchResult, kb);
+  const recruiterHighlight = recruiterMode ? buildRecruiterHighlight(intent, kb) : null;
 
   const finalize = (payload) => ({
     ...payload,
@@ -95,14 +214,23 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
     suggestions: payload.suggestions || suggestions,
     recommendations,
     relevantTopics: RELEVANT_TOPICS,
+    links: payload.links || links,
+    cards: payload.cards || null,
+    recruiterHighlight,
   });
 
   // Handle Medium-Confidence Ambiguous / Clarifying Questions
   if (intent === 'clarification' || (confidenceLevel === 'medium' && matchResult?.clarifyingQuestion)) {
+    const clarifyCards =
+      Array.isArray(matchResult?.candidateItems) && matchResult.candidateItems.length > 0
+        ? { type: 'projects', items: matchResult.candidateItems.slice(0, 3) }
+        : null;
+
     return finalize({
       intent: 'clarification',
       confidence: confidence || 0.58,
       confidenceLevel: 'medium',
+      cards: clarifyCards,
       reply:
         `🤔 **Clarification Needed:**\n\n` +
         `${matchResult.clarifyingQuestion}\n\n` +
@@ -200,6 +328,7 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
     case 'skills': {
       const matchedSkill = matchResult?.matchedSkill;
       let prefix = '';
+      let skillProjectCards = null;
 
       if (matchedSkill) {
         const relatedProjects = graph.getProjectsBySkill(matchedSkill);
@@ -209,10 +338,14 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
             ? ` He has used it in projects like **${projectNames.join(', ')}**.`
             : '';
         prefix = `Yes! **${matchedSkill}** is part of Jatin's technical toolkit.${projectNote}\n\n`;
+        if (relatedProjects.length > 0) {
+          skillProjectCards = { type: 'projects', items: relatedProjects.slice(0, 2) };
+        }
       }
 
       return finalize({
         intent: 'skills',
+        cards: skillProjectCards,
         reply:
           `${prefix}💻 **${intro.name}'s Technical Skills:**\n\n` +
           `• **Programming:** ${[...(skills.coreProgramming || []), ...(skills.additionalLanguages || [])].join(', ')}\n` +
@@ -225,7 +358,6 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
     }
 
     case 'project_detail': {
-      // Handle multi-turn contextual list filtering (e.g. "Which one uses Python?" after "Tell me about Jatin's projects")
       if (
         matchResult?.followUpType === 'project_list_filter' ||
         matchResult?.followUpType === 'project_list_demo_filter'
@@ -247,13 +379,13 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
         }
 
         const lines = filteredProjects.map((p) => {
-          const links = [
+          const itemLinks = [
             p.liveUrl ? `Live: ${p.liveUrl}` : null,
             p.github ? `GitHub: ${p.github}` : null,
           ]
             .filter(Boolean)
             .join(' | ');
-          const linkText = links ? ` (${links})` : '';
+          const linkText = itemLinks ? ` (${itemLinks})` : '';
           return `• **${p.title}** (${p.category}): ${p.description} *[Tech: ${(p.tech || []).join(', ')}]*${linkText}`;
         });
 
@@ -264,6 +396,7 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
 
         return finalize({
           intent: 'project_detail',
+          cards: { type: 'projects', items: filteredProjects },
           reply:
             `🔍 Resolving against Jatin's projects — ${headingVerb} ${filterLabel}:\n\n` +
             lines.join('\n') +
@@ -283,6 +416,7 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
 
         return finalize({
           intent: 'project_detail',
+          cards: { type: 'projects', items: [specificProject] },
           reply:
             `🚀 **${specificProject.title}** (${specificProject.category})\n\n` +
             `${specificProject.description}\n\n` +
@@ -293,7 +427,7 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
         });
       }
 
-      return generateResponse({ ...matchResult, intent: 'projects' }, kb, context);
+      return generateResponse({ ...matchResult, intent: 'projects' }, kb, context, options);
     }
 
     case 'projects': {
@@ -304,6 +438,7 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
 
       return finalize({
         intent: 'projects',
+        cards: { type: 'projects', items: projectList.slice(0, 4) },
         reply:
           `🚀 **${intro.name}'s Projects:**\n\n` +
           projectLines.join('\n') +
@@ -330,6 +465,7 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
 
       return finalize({
         intent: 'certifications',
+        cards: { type: 'certifications', items: targetCerts.slice(0, 4) },
         reply:
           header +
           certLines.join('\n') +
@@ -370,6 +506,10 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
     case 'recruiter_info': {
       return finalize({
         intent: 'recruiter_info',
+        cards: {
+          type: 'projects',
+          items: projectList.filter((p) => p.featured).slice(0, 2),
+        },
         reply:
           `📋 **Recruiter & Hiring Summary — ${intro.fullName || intro.name}:**\n\n` +
           `• **Current Academic Status:** B.E. Computer Engineering (3rd Year, Sem 6) at UPL University of Sustainable Technology, specializing in **Data Science**.\n` +
@@ -390,6 +530,7 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
         const [p1, p2] = comparedProjects;
         return finalize({
           intent: 'comparisons',
+          cards: { type: 'projects', items: [p1, p2] },
           reply:
             `⚖️ **Project Comparison: ${p1.title} vs ${p2.title}**\n\n` +
             `• **${p1.title}** (${p1.category}): ${p1.description}\n` +
@@ -416,6 +557,7 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
 
       return finalize({
         intent: 'comparisons',
+        cards: { type: 'projects', items: projectList.filter((p) => p.featured).slice(0, 3) },
         reply:
           `⚖️ **Comparing Jatin's Core Engineering Domains:**\n\n` +
           `• **AI/ML & Data Science Track:** Uses **Python, TensorFlow, OpenCV, Pandas, Scikit-Learn, and Linear Regression** in projects like **Smart City Traffic Analyzer** and **AI-Powered Sales Forecaster**.\n` +
@@ -434,6 +576,10 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
 
       return finalize({
         intent: 'recommendations',
+        cards: {
+          type: 'projects',
+          items: projectList.filter((p) => p.featured).slice(0, 3),
+        },
         reply:
           `✨ **Recommended Highlights for You:**\n\n` +
           `**Featured Projects to Explore:**\n` +
@@ -520,12 +666,18 @@ export function generateResponse(matchResult, knowledge = defaultKnowledge, cont
  * @param {string} userInput
  * @param {object} [knowledge=defaultKnowledge]
  * @param {object} [context=null]
+ * @param {object} [options={}]
  */
-export function matchChatbotResponse(userInput, knowledge = defaultKnowledge, context = null) {
+export function matchChatbotResponse(
+  userInput,
+  knowledge = defaultKnowledge,
+  context = null,
+  options = {}
+) {
   try {
     const kb = knowledge || defaultKnowledge;
     const matchResult = matchIntent(userInput, kb, context);
-    const response = generateResponse(matchResult, kb, context);
+    const response = generateResponse(matchResult, kb, context, options);
     const retrievedKnowledge = retrieveKnowledge(userInput);
     return {
       ...response,
@@ -541,6 +693,8 @@ export function matchChatbotResponse(userInput, knowledge = defaultKnowledge, co
       reply: EXACT_FALLBACK_MESSAGE,
       suggestions: defaultKnowledge.config?.suggestedQuestions?.slice(0, 4) || [],
       relevantTopics: RELEVANT_TOPICS,
+      links: [],
+      cards: null,
     };
   }
 }

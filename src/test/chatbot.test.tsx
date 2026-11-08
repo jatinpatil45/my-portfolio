@@ -349,6 +349,57 @@ describe('PortfolioChatbot UI & Offline Functionality', () => {
     // Confirm zero network calls (100% offline capable after page load)
     expect(fetchSpy).not.toHaveBeenCalled();
   });
+
+  it('renders project cards, certification cards, recruiter mode toggle, copy button, scroll-to-bottom, and session history with empty state', async () => {
+    render(<PortfolioChatbot />);
+
+    fireEvent.click(screen.getByLabelText('Open Jatin AI chat'));
+
+    // 1. Check Session History Empty State before any questions are asked
+    const historyBtn = screen.getByLabelText('Conversation history');
+    fireEvent.click(historyBtn);
+    expect(screen.getByText('No questions asked yet')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Back to Chat'));
+
+    // 2. Toggle Recruiter Mode ON
+    const recruiterToggle = screen.getByLabelText('Toggle Recruiter Mode');
+    fireEvent.click(recruiterToggle);
+    expect(screen.getByText('Recruiter Mode Active')).toBeInTheDocument();
+
+    // 3. Ask for projects to verify interactive Project Cards, Related Questions, and Scroll-to-Bottom button
+    const input = screen.getByLabelText('Message Jatin AI');
+    fireEvent.change(input, { target: { value: "Show me Jatin's projects" } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+
+    act(() => {
+      vi.advanceTimersByTime(550);
+    });
+
+    expect(screen.getByLabelText('Project cards')).toBeInTheDocument();
+    expect(screen.getByText(/Recruiter Takeaway:/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Scroll to bottom')).toBeInTheDocument();
+
+    // 4. Ask for certifications to verify Certification Cards
+    fireEvent.change(input, { target: { value: 'What certifications does Jatin have?' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+
+    act(() => {
+      vi.advanceTimersByTime(550);
+    });
+
+    expect(screen.getByLabelText('Certification cards')).toBeInTheDocument();
+
+    // 5. Copy response button
+    const copyButtons = screen.getAllByLabelText('Copy response');
+    expect(copyButtons.length).toBeGreaterThan(0);
+    await act(async () => {
+      fireEvent.click(copyButtons[copyButtons.length - 1]);
+    });
+
+    // 6. Session History now lists the 2 asked questions
+    fireEvent.click(historyBtn);
+    expect(screen.getByText(/Questions asked during your current session \(2\)/i)).toBeInTheDocument();
+  });
 });
 
 describe('Jatin AI 3.0 Knowledge Graph, Structured Schema, Analytics & Voice', () => {
