@@ -551,11 +551,16 @@ export function generateResponse(
         return `• **${p.title}** (${p.category}): ${p.description} *[${(p.tech || []).join(', ')}]*${linkSuffix}`;
       });
 
+      const heading =
+        matchResult?.recruiterTopic === 'project_portfolio_summary'
+          ? `🚀 **${intro.name}'s Project Portfolio Summary & Technologies Used:**\n\n`
+          : `🚀 **${intro.name}'s Projects:**\n\n`;
+
       return finalize({
         intent: 'projects',
         cards: { type: 'projects', items: projectList.slice(0, 4) },
         reply:
-          `🚀 **${intro.name}'s Projects:**\n\n` +
+          heading +
           projectLines.join('\n') +
           `\n\n• **Featured Work:** ${PORTFOLIO_LINKS.projects}\n` +
           `• **All Repositories on GitHub:** ${contact.github}`,
@@ -589,6 +594,22 @@ export function generateResponse(
     }
 
     case 'achievements': {
+      if (matchResult?.recruiterTopic === 'gsa_activities') {
+        const gsaActivities = graph.getActivitiesForAchievement('Google Student Ambassador');
+        const gsaBulletLines = gsaActivities.map(
+          (act) => `• **${act.role || act.title}:** ${act.details || act.description}`
+        );
+        return finalize({
+          intent: 'achievements',
+          reply:
+            `🏆 **Google Student Ambassador Activities — ${intro.name}:**\n\n` +
+            `• **Role:** Google Student Ambassador (Campus & Developer Community)\n` +
+            `• **Verified Activities:** Engaging students with Google developer technologies, AI/cloud learning paths, and campus tech community initiatives.\n` +
+            (gsaBulletLines.length > 0 ? `${gsaBulletLines.join('\n')}\n` : '') +
+            `• **About Section:** ${PORTFOLIO_LINKS.about}`,
+        });
+      }
+
       const achLines = achievementList.map(
         (a) => `• **${a.title}:** ${a.description}`
       );
@@ -608,10 +629,13 @@ export function generateResponse(
         (e) => `• **${e.role}** — *${e.organization}* (${e.period}): ${e.details}`
       );
 
+      const employmentNote =
+        `ℹ️ *Verification Note: ${intro.name} is currently a 3rd-year (Sem 6) B.E. Computer Engineering undergraduate student and does not claim formal corporate employment, commercial industry work experience, or unverified years of professional experience. His practical background consists of campus leadership and academic/independent project development:*\n\n`;
+
       return finalize({
         intent: 'experience',
         reply:
-          `💼 **${intro.name}'s Experience & Leadership:**\n\n` +
+          `${employmentNote}💼 **${intro.name}'s Verified Academic & Leadership Background:**\n\n` +
           expLines.join('\n') +
           `\n\n**Availability:** ${contact.availability}\n` +
           `• **Portfolio:** ${PORTFOLIO_LINKS.portfolio}`,
@@ -619,19 +643,45 @@ export function generateResponse(
     }
 
     case 'recruiter_info': {
+      if (matchResult?.recruiterTopic === 'certifications_achievements_summary') {
+        const certLines = certList.map(
+          (c) => `• **${c.title}** — *${c.issuer}*${c.date ? ` (${c.date})` : ''}`
+        );
+        const achLines = achievementList.map(
+          (a) => `• **${a.title}:** ${a.description}`
+        );
+
+        return finalize({
+          intent: 'recruiter_info',
+          cards: { type: 'certifications', items: certList.slice(0, 4) },
+          reply:
+            `📜 **Certifications & Achievements Summary — ${intro.name}:**\n\n` +
+            `**Verified Course Certifications (${certList.length}):**\n` +
+            certLines.join('\n') +
+            `\n\n**Verified Achievements & Campus Activities (${achievementList.length}):**\n` +
+            achLines.join('\n') +
+            `\n\n• **Verify Credentials:** ${PORTFOLIO_LINKS.certifications}\n` +
+            `• **Hackathon Certificates:** ${PORTFOLIO_LINKS.hackathons}`,
+        });
+      }
+
+      const candidateSummary = buildCandidateSummaryCard(kb);
+
       return finalize({
         intent: 'recruiter_info',
+        candidateSummary,
         cards: {
           type: 'projects',
           items: projectList.filter((p) => p.featured).slice(0, 2),
         },
         reply:
-          `📋 **Recruiter & Hiring Summary — ${intro.fullName || intro.name}:**\n\n` +
+          `📋 **Recruiter & Technical Profile Overview — ${intro.fullName || intro.name}:**\n\n` +
           `• **Current Academic Status:** B.E. Computer Engineering (3rd Year, Sem 6) at UPL University of Sustainable Technology, specializing in **Data Science**.\n` +
-          `• **Target Roles:** AI/ML Intern, Data Science Intern, and Full-Stack Web Developer.\n` +
-          `• **Core Technical Stack:** Python, JavaScript, TypeScript, Java, React, Node.js, TensorFlow, OpenCV, Pandas, Scikit-Learn, Tailwind CSS, Firebase, MongoDB.\n` +
-          `• **Key Production & AI Projects:** AI Study Assistant (StudyMate AI), AI Web Clone Builder, Smart City Traffic Analyzer, and AI-Powered Sales Forecaster.\n` +
-          `• **Leadership & Credentials:** Google Student Ambassador, 8 verified certifications (Google/Coursera, Microsoft Learn, IICT, CodeWithHarry, LetsUpgrade), and 2 national hackathon certificates.\n` +
+          `• **Experience Disclosure:** Undergraduate student — no formal corporate employment or commercial industry experience is claimed. Practical background comes from academic coursework, self-driven software/AI projects, hackathons, and campus leadership.\n` +
+          `• **Programming Languages:** Python, JavaScript, TypeScript, Java, C, C++, SQL, HTML/CSS.\n` +
+          `• **Technical Stack:** React, Node.js, TensorFlow, OpenCV, Pandas, NumPy, Scikit-Learn, Tailwind CSS, Firebase, MongoDB (plus currently learning Google Cloud Cybersecurity).\n` +
+          `• **Key Portfolio Projects:** AI Study Assistant (StudyMate AI), AI Web Clone Builder, Smart City Traffic Analyzer, and AI-Powered Sales Forecaster.\n` +
+          `• **Leadership & Credentials:** Google Student Ambassador, 8 verified certifications (Google/Coursera, Microsoft Learn, IICT, CodeWithHarry, LetsUpgrade), and 2 national hackathon participation certificates.\n` +
           `• **Availability:** ${contact.availability}\n` +
           `• **Direct Contact:** mailto:${contact.email} | LinkedIn: ${contact.linkedin} | GitHub: ${contact.github}`,
       });
