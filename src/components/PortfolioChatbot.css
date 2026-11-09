@@ -279,6 +279,10 @@
 /* Recruiter Mode Banner */
 .jatin-chatbot-recruiter-banner {
   padding: 9px 14px;
+  max-height: 225px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: linear-gradient(
     90deg,
     hsl(187 100% 42% / 0.13),
@@ -287,6 +291,18 @@
   border-bottom: 1px solid hsl(var(--primary) / 0.3);
   flex-shrink: 0;
   animation: jatinMsgIn 0.22s ease forwards;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jatin-chatbot-recruiter-banner::-webkit-scrollbar {
+  width: 4px;
+}
+
+.jatin-chatbot-recruiter-banner::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.4);
+  border-radius: 999px;
 }
 
 .jatin-chatbot-recruiter-top {
@@ -294,6 +310,35 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.jatin-chatbot-recruiter-top-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.jatin-chatbot-recruiter-collapse-btn,
+.jatin-chatbot-recruiter-exit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card) / 0.85);
+  color: hsl(var(--muted-foreground));
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.jatin-chatbot-recruiter-collapse-btn:hover,
+.jatin-chatbot-recruiter-exit-btn:hover {
+  border-color: hsl(var(--primary) / 0.55);
+  color: hsl(var(--primary));
 }
 
 .jatin-chatbot-recruiter-badge {
@@ -313,6 +358,104 @@
   font-weight: 600;
 }
 
+/* Verified Candidate Summary Card */
+.jatin-chatbot-candidate-card {
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: hsl(var(--card) / 0.9);
+  border: 1px solid hsl(var(--primary) / 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.jatin-chatbot-candidate-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.jatin-chatbot-candidate-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: hsl(var(--primary));
+}
+
+.jatin-chatbot-candidate-name {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.jatin-chatbot-candidate-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3.5px;
+  font-size: 11px;
+  line-height: 1.38;
+  color: hsl(var(--foreground) / 0.92);
+}
+
+.jatin-chatbot-candidate-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.jatin-chatbot-candidate-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: hsl(var(--primary));
+}
+
+.jatin-chatbot-candidate-disclosure {
+  margin: 0;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: hsl(var(--muted) / 0.65);
+  border: 1px dashed hsl(var(--border));
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 10.25px;
+  line-height: 1.35;
+  color: hsl(var(--muted-foreground));
+}
+
+.jatin-chatbot-candidate-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.jatin-chatbot-recruiter-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.jatin-chatbot-recruiter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jatin-chatbot-recruiter-group-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 .jatin-chatbot-recruiter-summary {
   margin: 3px 0 7px;
   font-size: 11.5px;
@@ -323,15 +466,18 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .jatin-chatbot-recruiter-btn,
 .jatin-chatbot-recruiter-link {
-  padding: 3px 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
   border-radius: 7px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
   border: 1px solid hsl(var(--primary) / 0.4);
   background: hsl(var(--primary) / 0.12);
@@ -341,10 +487,55 @@
   transition: all 0.18s ease;
 }
 
-.jatin-chatbot-recruiter-btn:hover,
+.jatin-chatbot-recruiter-btn--overview {
+  border-color: hsl(var(--secondary) / 0.45);
+  background: hsl(var(--secondary) / 0.12);
+  color: hsl(var(--foreground));
+}
+
+.jatin-chatbot-recruiter-btn:hover:not(:disabled),
 .jatin-chatbot-recruiter-link:hover {
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
+}
+
+.jatin-chatbot-recruiter-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.jatin-chatbot-recruiter-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.jatin-chatbot-recruiter-cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card) / 0.85);
+  color: hsl(var(--foreground) / 0.9);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.jatin-chatbot-recruiter-cat-chip:hover:not(:disabled) {
+  border-color: hsl(var(--primary) / 0.55);
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.1);
+}
+
+.jatin-chatbot-recruiter-cat-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: hsl(var(--primary));
 }
 
 /* Error Banner */

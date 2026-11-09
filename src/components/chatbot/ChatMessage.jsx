@@ -14,6 +14,7 @@ import {
   Briefcase,
   CornerDownRight,
 } from 'lucide-react';
+import { CandidateSummaryCard } from './RecruiterMode';
 
 /**
  * Navigates smoothly to an in-page hash section if present on the current document,
@@ -279,6 +280,14 @@ const ChatMessage = ({
         >
           {isUser ? <p>{message.text}</p> : renderFormattedMessage(message.text)}
         </div>
+
+        {/* Verified Candidate Summary Card on Recruiter Overview Responses */}
+        {!isUser && message.candidateSummary && (
+          <CandidateSummaryCard
+            summary={message.candidateSummary}
+            onSelectQuery={onSelectQuestion}
+          />
+        )}
 
         {/* Rich Interactive Cards (Projects or Certifications) */}
         {!isUser && message.cards?.type === 'projects' && (

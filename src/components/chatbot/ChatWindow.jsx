@@ -22,7 +22,7 @@ import {
 import ChatMessage from './ChatMessage';
 import QuickReplies from './QuickReplies';
 import ChatInput from './ChatInput';
-import { PORTFOLIO_LINKS } from '../../data/chatbotKnowledge';
+import RecruiterMode from './RecruiterMode';
 import {
   VOICE_PRIVACY_NOTICE,
   SPEECH_RATE_OPTIONS,
@@ -489,54 +489,14 @@ const ChatWindow = ({
         </p>
       </div>
 
-      {/* Recruiter Mode Active Bar */}
+      {/* Recruiter Mode Active Panel */}
       {recruiterMode && !showHistory && (
-        <div className="jatin-chatbot-recruiter-banner" role="region" aria-label="Recruiter quick brief">
-          <div className="jatin-chatbot-recruiter-top">
-            <span className="jatin-chatbot-recruiter-badge">
-              <Briefcase size={11} /> Recruiter Mode Active
-            </span>
-            <span className="jatin-chatbot-recruiter-avail">Open to Internships & Roles</span>
-          </div>
-          <p className="jatin-chatbot-recruiter-summary">
-            B.E. Computer Engineering (Sem 6, Data Science) • Full-Stack & AI/ML Developer
-          </p>
-          <div className="jatin-chatbot-recruiter-actions">
-            <button
-              type="button"
-              className="jatin-chatbot-recruiter-btn"
-              onClick={() => onSendMessage('Why should we hire Jatin?', 'recruiter_bar')}
-            >
-              Hiring Summary
-            </button>
-            <button
-              type="button"
-              className="jatin-chatbot-recruiter-btn"
-              onClick={() =>
-                onSendMessage(
-                  'Compare AI Study Assistant and AI Web Clone Builder',
-                  'recruiter_bar'
-                )
-              }
-            >
-              Compare Projects
-            </button>
-            <a
-              href={PORTFOLIO_LINKS.email}
-              className="jatin-chatbot-recruiter-link"
-            >
-              Email
-            </a>
-            <a
-              href={PORTFOLIO_LINKS.linkedin}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="jatin-chatbot-recruiter-link"
-            >
-              LinkedIn
-            </a>
-          </div>
-        </div>
+        <RecruiterMode
+          recruiterMode={recruiterMode}
+          onToggleRecruiterMode={onToggleRecruiterMode}
+          onSelectQuery={onSendMessage}
+          disabled={isTyping}
+        />
       )}
 
       {/* Error State Banner */}

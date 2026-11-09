@@ -475,6 +475,7 @@ export function useChatbot() {
             confidence: result.confidence,
             confidenceLevel: result.confidenceLevel || 'high',
             cards: result.cards || null,
+            candidateSummary: result.candidateSummary || null,
             links: result.links || [],
             relatedQuestions: (result.suggestions || []).slice(0, 3),
             recruiterHighlight: result.recruiterHighlight || null,

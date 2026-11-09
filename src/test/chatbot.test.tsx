@@ -20,7 +20,13 @@ import {
   getRecommendations,
   getStructuredRecommendations,
   deduplicateResponseLines,
+  buildCandidateSummaryCard,
 } from '../utils/chatbotMatcher';
+import {
+  RECRUITER_QUESTION_CATEGORIES,
+  RECRUITER_QUICK_ACTIONS,
+  RECRUITER_OVERVIEW_REQUESTS,
+} from '../components/RecruiterMode';
 import {
   VOICE_PRIVACY_NOTICE,
   isSpeechRecognitionSupported,
@@ -740,5 +746,144 @@ describe('Browser-Native Voice Input, Voice Output & Privacy Controls', () => {
     const voiceOffBtn = screen.getByLabelText('Turn voice off');
     fireEvent.click(voiceOffBtn);
     expect(screen.getByLabelText('Turn voice on')).toBeInTheDocument();
+  });
+});
+
+describe('Recruiter Mode (RecruiterMode.jsx) & Verified Candidate Briefs', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('includes all 15 required question categories, 7 quick actions, and 4 recruiter overview requests mapped to the custom response engine', () => {
+    expect(RECRUITER_QUESTION_CATEGORIES).toHaveLength(15);
+    const expectedCategoryLabels = [
+      'Candidate introduction',
+      'Education',
+      'Technical skills',
+      'Programming languages',
+      'Data Science knowledge',
+      'AI and Machine Learning interests',
+      'Web development skills',
+      'Cybersecurity learning',
+      'Projects and technologies used',
+      'Certifications',
+      'Google Student Ambassador activities',
+      'Achievements',
+      'GitHub repositories',
+      'LinkedIn profile',
+      'Contact information',
+    ];
+    expect(RECRUITER_QUESTION_CATEGORIES.map((c) => c.label)).toEqual(expectedCategoryLabels);
+
+    // Every single one of the 15 categories must resolve with high confidence via the custom engine
+    for (const cat of RECRUITER_QUESTION_CATEGORIES) {
+      const res = matchChatbotResponse(cat.query, chatbotKnowledge, null, {
+        recruiterMode: true,
+      });
+      expect(res.intent, `Category "${cat.label}" fell back`).not.toBe('fallback');
+      expect(res.confidenceLevel).toBe('high');
+      expect(res.reply.length).toBeGreaterThan(25);
+    }
+
+    expect(RECRUITER_QUICK_ACTIONS).toHaveLength(7);
+    const expectedQuickActionLabels = [
+      'Generate professional candidate summary',
+      'Show technical skills',
+      'Explore projects',
+      'View achievements',
+      'View GitHub',
+      'View LinkedIn',
+      'Contact candidate',
+    ];
+    expect(RECRUITER_QUICK_ACTIONS.map((a) => a.label)).toEqual(expectedQuickActionLabels);
+
+    for (const action of RECRUITER_QUICK_ACTIONS) {
+      const res = matchChatbotResponse(action.query, chatbotKnowledge, null, {
+        recruiterMode: true,
+      });
+      expect(res.intent, `Quick action "${action.label}" fell back`).not.toBe('fallback');
+      expect(res.confidenceLevel).toBe('high');
+    }
+
+    expect(RECRUITER_OVERVIEW_REQUESTS).toHaveLength(4);
+    const expectedOverviews = [
+      'Technical profile overview',
+      'Project portfolio summary',
+      'Skills grouped by category',
+      'Certifications and achievements summary',
+    ];
+    expect(RECRUITER_OVERVIEW_REQUESTS.map((o) => o.label)).toEqual(expectedOverviews);
+
+    for (const ov of RECRUITER_OVERVIEW_REQUESTS) {
+      const res = matchChatbotResponse(ov.query, chatbotKnowledge, null, {
+        recruiterMode: true,
+      });
+      expect(res.intent, `Overview "${ov.label}" fell back`).not.toBe('fallback');
+      expect(res.confidenceLevel).toBe('high');
+    }
+  });
+
+  it('never claims corporate employment, industry experience, or unverified years of experience', () => {
+    const summaryCard = buildCandidateSummaryCard(chatbotKnowledge);
+    expect(summaryCard.fullName).toBe('Jatin Narayanbhai Patil');
+    expect(summaryCard.academicStatus).toContain('B.E. Computer Engineering');
+    expect(summaryCard.experienceDisclosure).toContain(
+      'no formal corporate employment or commercial industry experience is claimed'
+    );
+
+    const yearsRes = matchChatbotResponse(
+      'How many years of industry experience does Jatin have?',
+      chatbotKnowledge,
+      null,
+      { recruiterMode: true }
+    );
+    expect(yearsRes.intent).toBe('experience');
+    expect(yearsRes.reply).toContain(
+      'does not claim formal corporate employment, commercial industry work experience, or unverified years of professional experience'
+    );
+
+    const overviewRes = matchChatbotResponse(
+      'Generate professional candidate summary',
+      chatbotKnowledge,
+      null,
+      { recruiterMode: true }
+    );
+    expect(overviewRes.intent).toBe('recruiter_info');
+    expect(overviewRes.candidateSummary).toBeDefined();
+    expect(overviewRes.reply).toContain('no formal corporate employment');
+  });
+
+  it('renders RecruiterMode.jsx candidate summary card, quick actions, and question categories when toggled on', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+    render(<PortfolioChatbot />);
+    fireEvent.click(screen.getByLabelText('Open Jatin AI chat'));
+
+    // Toggle Recruiter Mode ON
+    fireEvent.click(screen.getByLabelText('Toggle Recruiter Mode'));
+
+    expect(screen.getByLabelText('Recruiter Mode Panel')).toBeInTheDocument();
+    expect(screen.getByLabelText('Verified Candidate Summary Card')).toBeInTheDocument();
+    expect(screen.getByLabelText('Recruiter quick actions')).toBeInTheDocument();
+    expect(screen.getByLabelText('Recruiter question categories')).toBeInTheDocument();
+
+    // Click "Generate professional candidate summary" quick action
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Generate professional candidate summary' })[0]
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(550);
+    });
+
+    expect(
+      screen.getByText(/Recruiter & Technical Profile Overview/i)
+    ).toBeInTheDocument();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

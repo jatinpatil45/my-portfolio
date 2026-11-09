@@ -34,6 +34,7 @@ export {
   extractMentionedProjects,
   extractMentionedSkills,
   detectUnverifiedFactQuery,
+  detectRecruiterTopic,
 } from './intentMatcher';
 
 export {
@@ -51,6 +52,8 @@ export {
   generateResponse,
   matchChatbotResponse,
   deduplicateResponseLines,
+  buildCandidateSummaryCard,
   EXACT_FALLBACK_MESSAGE,
   RELEVANT_TOPICS,
+  RECRUITER_SUGGESTIONS,
 } from './responseGenerator';
