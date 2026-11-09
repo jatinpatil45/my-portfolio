@@ -616,8 +616,8 @@ export const projects = [
     aliases: ['portfolio engine', 'this portfolio', 'cyberpunk portfolio', 'jatin ai 3.0'],
     featured: false,
     description:
-      'Interactive animated portfolio showcasing modern web development with cyberpunk aesthetics and the modular offline Jatin AI 3.0 assistant.',
-    tech: ['React', 'Framer Motion', 'Tailwind CSS', 'TypeScript'],
+      'Interactive animated portfolio showcasing modern web development with cyberpunk aesthetics and the modular Jatin AI 3.0 assistant featuring knowledge-graph retrieval and browser-native voice interaction.',
+    tech: ['React', 'Framer Motion', 'Tailwind CSS', 'TypeScript', 'Web Speech API'],
     github: 'https://github.com/jatinpatil45',
     liveUrl: 'https://jatinpatil45.vercel.app/',
     portfolioLink: PORTFOLIO_LINKS.projects,
