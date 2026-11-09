@@ -8,8 +8,8 @@ import './PortfolioChatbot.css';
  *
  * Modular custom chatbot container uniting ChatWindow, ChatMessage,
  * QuickReplies, ChatInput, useChatbot state hook, knowledge graph,
- * intent/fuzzy matcher, Recruiter Mode, session history, voice controls,
- * and local analytics.
+ * intent/fuzzy matcher, Recruiter Mode, session history, browser-native
+ * voice input/output controls, and local analytics.
  */
 const PortfolioChatbot = () => {
   const {
@@ -37,6 +37,18 @@ const PortfolioChatbot = () => {
     retryLastMessage,
     voiceEnabled,
     isListening,
+    recognitionState,
+    interimTranscript,
+    micPermissionDenied,
+    synthesisState,
+    speakingMessageId,
+    speechRate,
+    setSpeechRate,
+    speechRateOptions,
+    availableVoices,
+    selectedVoiceURI,
+    setSelectedVoiceURI,
+    voicePrivacyNotice,
     speechRecognitionSupported,
     speechSynthesisSupported,
     messagesContainerRef,
@@ -48,8 +60,15 @@ const PortfolioChatbot = () => {
     sendMessage,
     handleClearChat,
     toggleVoiceOutput,
+    disableVoice,
+    startVoiceInput,
+    stopVoiceInput,
     toggleVoiceInput,
     speakMessage,
+    playVoiceOutput,
+    pauseVoiceOutput,
+    resumeVoiceOutput,
+    stopVoiceOutput,
   } = useChatbot();
 
   return (
@@ -82,11 +101,30 @@ const PortfolioChatbot = () => {
           onRetryLastMessage={retryLastMessage}
           voiceEnabled={voiceEnabled}
           onToggleVoiceOutput={toggleVoiceOutput}
+          onDisableVoice={disableVoice}
           speechSynthesisSupported={speechSynthesisSupported}
           speechRecognitionSupported={speechRecognitionSupported}
           isListening={isListening}
+          recognitionState={recognitionState}
+          interimTranscript={interimTranscript}
+          micPermissionDenied={micPermissionDenied}
+          onStartVoiceInput={startVoiceInput}
+          onStopVoiceInput={stopVoiceInput}
           onToggleVoiceInput={toggleVoiceInput}
+          synthesisState={synthesisState}
+          speakingMessageId={speakingMessageId}
+          speechRate={speechRate}
+          speechRateOptions={speechRateOptions}
+          onSpeechRateChange={setSpeechRate}
+          availableVoices={availableVoices}
+          selectedVoiceURI={selectedVoiceURI}
+          onSelectVoice={setSelectedVoiceURI}
+          voicePrivacyNotice={voicePrivacyNotice}
           onSpeakMessage={speakMessage}
+          onPlayVoiceOutput={playVoiceOutput}
+          onPauseVoiceOutput={pauseVoiceOutput}
+          onResumeVoiceOutput={resumeVoiceOutput}
+          onStopVoiceOutput={stopVoiceOutput}
           messagesContainerRef={messagesContainerRef}
           messagesEndRef={messagesEndRef}
           inputRef={inputRef}

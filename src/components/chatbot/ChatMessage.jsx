@@ -8,6 +8,9 @@ import {
   Award,
   Sparkles,
   Volume2,
+  Pause,
+  Play,
+  Square,
   Briefcase,
   CornerDownRight,
 } from 'lucide-react';
@@ -227,7 +230,12 @@ const ChatMessage = ({
   onCopy,
   onSelectQuestion,
   speechSynthesisSupported = false,
+  isSpeakingThis = false,
+  synthesisState = 'idle',
   onSpeak,
+  onPause,
+  onResume,
+  onStop,
 }) => {
   if (!message) return null;
   const isUser = message.sender === 'user';
@@ -236,6 +244,9 @@ const ChatMessage = ({
     message.intent !== 'welcome' &&
     Array.isArray(message.relatedQuestions) &&
     message.relatedQuestions.length > 0;
+
+  const isPlayingThis = isSpeakingThis && synthesisState === 'playing';
+  const isPausedThis = isSpeakingThis && synthesisState === 'paused';
 
   return (
     <div
@@ -366,15 +377,59 @@ const ChatMessage = ({
           )}
 
           {!isUser && speechSynthesisSupported && onSpeak && (
-            <button
-              type="button"
-              className="jatin-chatbot-meta-btn"
-              onClick={() => onSpeak(message.text)}
-              aria-label="Read response aloud"
-              title="Listen to response"
-            >
-              <Volume2 size={11} />
-            </button>
+            <div className="jatin-chatbot-msg-voice-controls">
+              {!isPlayingThis && !isPausedThis && (
+                <button
+                  type="button"
+                  className="jatin-chatbot-meta-btn"
+                  onClick={() => onSpeak(message.text, message.id)}
+                  aria-label="Read response aloud"
+                  title="Listen to response"
+                >
+                  <Volume2 size={11} />
+                  <span>Listen</span>
+                </button>
+              )}
+
+              {isPlayingThis && onPause && (
+                <button
+                  type="button"
+                  className="jatin-chatbot-meta-btn jatin-chatbot-meta-btn--active"
+                  onClick={onPause}
+                  aria-label="Pause reading"
+                  title="Pause speech"
+                >
+                  <Pause size={11} />
+                  <span>Pause</span>
+                </button>
+              )}
+
+              {isPausedThis && onResume && (
+                <button
+                  type="button"
+                  className="jatin-chatbot-meta-btn jatin-chatbot-meta-btn--active"
+                  onClick={onResume}
+                  aria-label="Resume reading"
+                  title="Resume speech"
+                >
+                  <Play size={11} />
+                  <span>Resume</span>
+                </button>
+              )}
+
+              {(isPlayingThis || isPausedThis) && onStop && (
+                <button
+                  type="button"
+                  className="jatin-chatbot-meta-btn"
+                  onClick={onStop}
+                  aria-label="Stop reading"
+                  title="Stop speech"
+                >
+                  <Square size={10} />
+                  <span>Stop</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>

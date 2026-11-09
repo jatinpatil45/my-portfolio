@@ -21,7 +21,20 @@ import {
   getStructuredRecommendations,
   deduplicateResponseLines,
 } from '../utils/chatbotMatcher';
-import { stripMarkdownForSpeech } from '../services/voiceService';
+import {
+  VOICE_PRIVACY_NOTICE,
+  isSpeechRecognitionSupported,
+  isSpeechSynthesisSupported,
+  clampSpeechRate,
+  getAvailableVoices,
+  stripMarkdownForSpeech,
+  speakText,
+  pauseSpeaking,
+  resumeSpeaking,
+  stopSpeaking,
+  mapSpeechRecognitionError,
+  createSpeechRecognizer,
+} from '../services/voiceService';
 import { trackInteraction, getAnalyticsSummary, resetAnalytics } from '../services/analyticsService';
 
 const EXPECTED_FALLBACK =
@@ -476,5 +489,256 @@ describe('Jatin AI 3.0 Knowledge Graph, Structured Schema, Analytics & Voice', (
 
     const speechClean = stripMarkdownForSpeech('Hello 👋 **Jatin AI** at https://jatinpatil45.vercel.app/');
     expect(speechClean).toBe('Hello Jatin AI at link');
+  });
+});
+
+describe('Browser-Native Voice Input, Voice Output & Privacy Controls', () => {
+  let lastRecognitionInstance: any = null;
+  let spokenUtterances: any[] = [];
+  let mockVoices: any[] = [];
+
+  class MockSpeechRecognition {
+    lang = 'en-US';
+    interimResults = true;
+    maxAlternatives = 1;
+    continuous = false;
+    onstart: any = null;
+    onaudiostart: any = null;
+    onspeechstart: any = null;
+    onresult: any = null;
+    onerror: any = null;
+    onend: any = null;
+    start = vi.fn(() => {
+      if (this.onstart) this.onstart();
+    });
+    stop = vi.fn(() => {
+      if (this.onend) this.onend();
+    });
+    abort = vi.fn(() => {
+      if (this.onend) this.onend();
+    });
+    constructor() {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      lastRecognitionInstance = this;
+    }
+  }
+
+  class MockSpeechSynthesisUtterance {
+    text: string;
+    lang = 'en-US';
+    rate = 1;
+    pitch = 1;
+    voice: any = null;
+    onstart: any = null;
+    onpause: any = null;
+    onresume: any = null;
+    onend: any = null;
+    onerror: any = null;
+    constructor(text: string) {
+      this.text = text;
+    }
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    lastRecognitionInstance = null;
+    spokenUtterances = [];
+    mockVoices = [
+      { name: 'Google US English', lang: 'en-US', voiceURI: 'Google US English' },
+      { name: 'Microsoft Aria Online', lang: 'en-GB', voiceURI: 'Microsoft Aria Online' },
+    ];
+
+    (window as any).SpeechRecognition = undefined;
+    (window as any).webkitSpeechRecognition = MockSpeechRecognition;
+    (window as any).SpeechSynthesisUtterance = MockSpeechSynthesisUtterance;
+    (window as any).speechSynthesis = {
+      speaking: false,
+      paused: false,
+      getVoices: vi.fn(() => mockVoices),
+      speak: vi.fn((utterance: any) => {
+        spokenUtterances.push(utterance);
+        (window as any).speechSynthesis.speaking = true;
+        (window as any).speechSynthesis.paused = false;
+        if (utterance.onstart) utterance.onstart();
+      }),
+      cancel: vi.fn(() => {
+        (window as any).speechSynthesis.speaking = false;
+        (window as any).speechSynthesis.paused = false;
+      }),
+      pause: vi.fn(() => {
+        (window as any).speechSynthesis.Paused = true;
+        (window as any).speechSynthesis.paused = true;
+      }),
+      resume: vi.fn(() => {
+        (window as any).speechSynthesis.paused = false;
+        (window as any).speechSynthesis.speaking = true;
+      }),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    delete (window as any).SpeechRecognition;
+    delete (window as any).webkitSpeechRecognition;
+    delete (window as any).SpeechSynthesisUtterance;
+    delete (window as any).speechSynthesis;
+    vi.restoreAllMocks();
+  });
+
+  it('does not activate microphone automatically, supports start/stop recognition, shows listening & recognizing states, and passes recognized text to chatbot engine', () => {
+    expect(isSpeechRecognitionSupported()).toBe(true);
+    expect(isSpeechSynthesisSupported()).toBe(true);
+
+    render(<PortfolioChatbot />);
+    fireEvent.click(screen.getByLabelText('Open Jatin AI chat'));
+
+    // Verify microphone is NOT activated automatically on open
+    expect(lastRecognitionInstance).toBeNull();
+    expect(screen.queryByText('Listening...')).not.toBeInTheDocument();
+
+    // Start microphone recognition
+    const startMicBtn = screen.getByLabelText('Start voice input');
+    fireEvent.click(startMicBtn);
+
+    expect(lastRecognitionInstance).not.toBeNull();
+    expect(lastRecognitionInstance.start).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Listening...')).toBeInTheDocument();
+
+    // Simulate interim recognition state ("Recognizing...")
+    act(() => {
+      lastRecognitionInstance.onresult({
+        resultIndex: 0,
+        results: [
+          Object.assign([{ transcript: 'what programming languages' }], { isFinal: false }),
+        ],
+      });
+    });
+
+    expect(screen.getByText('Recognizing...')).toBeInTheDocument();
+    expect(screen.getByText('"what programming languages"')).toBeInTheDocument();
+
+    // Simulate final speech recognition result -> passed into chatbot engine
+    act(() => {
+      lastRecognitionInstance.onresult({
+        resultIndex: 0,
+        results: [
+          Object.assign(
+            [{ transcript: 'What programming languages does Jatin know?' }],
+            { isFinal: true }
+          ),
+        ],
+      });
+      lastRecognitionInstance.onend();
+    });
+
+    // Advance timer for chatbot engine reply
+    act(() => {
+      vi.advanceTimersByTime(550);
+    });
+
+    expect(
+      screen.getByText('What programming languages does Jatin know?')
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Programming Languages:/i)).toBeInTheDocument();
+  });
+
+  it('handles microphone permission denial and unsupported browsers gracefully while keeping typed chat functional', () => {
+    render(<PortfolioChatbot />);
+    fireEvent.click(screen.getByLabelText('Open Jatin AI chat'));
+
+    // Start mic and trigger permission denial ('not-allowed')
+    fireEvent.click(screen.getByLabelText('Start voice input'));
+    act(() => {
+      lastRecognitionInstance.onerror({ error: 'not-allowed' });
+      lastRecognitionInstance.onend();
+    });
+
+    expect(
+      screen.getAllByText(/Microphone permission was denied|Microphone access was denied/i).length
+    ).toBeGreaterThan(0);
+
+    // Typed chat remains fully functional after permission denial
+    const input = screen.getByLabelText('Message Jatin AI');
+    fireEvent.change(input, { target: { value: 'Who is Jatin Patil?' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+
+    act(() => {
+      vi.advanceTimersByTime(550);
+    });
+    expect(screen.getAllByText(/Jatin Narayanbhai Patil/i).length).toBeGreaterThan(0);
+
+    // Now test unsupported browser behavior
+    delete (window as any).SpeechRecognition;
+    delete (window as any).webkitSpeechRecognition;
+    expect(isSpeechRecognitionSupported()).toBe(false);
+    expect(createSpeechRecognizer()).toBeNull();
+    expect(mapSpeechRecognitionError('not-allowed').isPermissionDenied).toBe(true);
+  });
+
+  it('supports speechSynthesis play, pause, resume, stop, speech rate adjustment, voice selection, voice-off option, and cancels previous speech on new response', () => {
+    render(<PortfolioChatbot />);
+    fireEvent.click(screen.getByLabelText('Open Jatin AI chat'));
+
+    // Verify clear privacy disclosure (never claims voice recognition is offline, no raw audio stored)
+    expect(screen.getByText(VOICE_PRIVACY_NOTICE)).toBeInTheDocument();
+    expect(VOICE_PRIVACY_NOTICE.toLowerCase()).not.toContain('offline');
+    expect(VOICE_PRIVACY_NOTICE.toLowerCase()).toContain('never recorded or stored');
+
+    // Enable voice output ("Turn voice on")
+    const voiceTogglePill = screen.getByLabelText('Turn voice on');
+    fireEvent.click(voiceTogglePill);
+    expect(screen.getByLabelText('Turn voice off')).toBeInTheDocument();
+
+    // Adjust speech rate to 1.5x
+    const rateSelect = screen.getByLabelText('Speech rate');
+    fireEvent.change(rateSelect, { target: { value: '1.5' } });
+    expect(clampSpeechRate(1.5)).toBe(1.5);
+    expect(clampSpeechRate(99)).toBe(2);
+    expect(clampSpeechRate(0.1)).toBe(0.5);
+
+    // Select a specific voice from available voices
+    expect(getAvailableVoices().length).toBe(2);
+    const voiceSelect = screen.getByLabelText('Select voice');
+    fireEvent.change(voiceSelect, { target: { value: 'Microsoft Aria Online' } });
+
+    // Send a query so bot responds and reads aloud automatically
+    const input = screen.getByLabelText('Message Jatin AI');
+    fireEvent.change(input, { target: { value: 'Share GitHub link' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+
+    act(() => {
+      vi.advanceTimersByTime(550);
+    });
+
+    expect((window as any).speechSynthesis.cancel).toHaveBeenCalled();
+    expect((window as any).speechSynthesis.speak).toHaveBeenCalledTimes(1);
+    expect(spokenUtterances[0].rate).toBe(1.5);
+    expect(spokenUtterances[0].voice.name).toBe('Microsoft Aria Online');
+
+    // Pause, Resume, and Stop controls
+    const pauseBtn = screen.getByLabelText('Pause voice output');
+    fireEvent.click(pauseBtn);
+    expect((window as any).speechSynthesis.pause).toHaveBeenCalledTimes(1);
+
+    const resumeBtn = screen.getByLabelText('Resume voice output');
+    fireEvent.click(resumeBtn);
+    expect((window as any).speechSynthesis.resume).toHaveBeenCalledTimes(1);
+
+    const stopBtn = screen.getByLabelText('Stop voice output');
+    fireEvent.click(stopBtn);
+    expect((window as any).speechSynthesis.cancel).toHaveBeenCalled();
+
+    // Direct helper tests for speakText, pauseSpeaking, resumeSpeaking, stopSpeaking
+    expect(speakText('Testing speech synthesis', { rate: 1.25 })).toBe(true);
+    expect(pauseSpeaking()).toBe(true);
+    expect(resumeSpeaking()).toBe(true);
+    stopSpeaking();
+
+    // Turn Voice Off via the Voice-Off control
+    const voiceOffBtn = screen.getByLabelText('Turn voice off');
+    fireEvent.click(voiceOffBtn);
+    expect(screen.getByLabelText('Turn voice on')).toBeInTheDocument();
   });
 });

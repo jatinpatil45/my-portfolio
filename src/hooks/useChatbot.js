@@ -7,7 +7,8 @@
  * - Recruiter Mode toggle & recruiter brief state
  * - Copy-to-clipboard with visual confirmation
  * - Contained smooth scrolling inside the chat message stream (never scrolling the main page)
- * - Voice input (Speech-to-Text) & Voice output (Text-to-Speech)
+ * - Browser-native Voice Input (SpeechRecognition / webkitSpeechRecognition) with listening/recognizing states & permission handling
+ * - Browser-native Voice Output (speechSynthesis) with play, pause, resume, stop, rate adjustment & voice selection
  * - Loading, error & empty states
  */
 
@@ -16,9 +17,19 @@ import chatbotKnowledge, { PORTFOLIO_LINKS } from '../data/chatbotKnowledge';
 import { matchChatbotResponse, RECRUITER_SUGGESTIONS } from '../utils/responseGenerator';
 import { createInitialContext, updateContext } from '../utils/contextManager';
 import {
+  VOICE_PRIVACY_NOTICE,
+  SPEECH_RATE_OPTIONS,
+  DEFAULT_SPEECH_RATE,
+  RECOGNITION_STATES,
+  SYNTHESIS_STATES,
   isSpeechRecognitionSupported,
   isSpeechSynthesisSupported,
+  clampSpeechRate,
+  getAvailableVoices,
+  subscribeToVoicesChanged,
   speakText,
+  pauseSpeaking,
+  resumeSpeaking,
   stopSpeaking,
   createSpeechRecognizer,
 } from '../services/voiceService';
@@ -81,9 +92,20 @@ export function useChatbot() {
   const [error, setError] = useState(null);
   const [lastQuery, setLastQuery] = useState('');
 
-  // Voice & Analytics states
+  // Voice Input & Output states (Microphone is NEVER activated automatically)
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [recognitionState, setRecognitionState] = useState(RECOGNITION_STATES.IDLE);
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const [micPermissionDenied, setMicPermissionDenied] = useState(false);
+
+  const [synthesisState, setSynthesisState] = useState(SYNTHESIS_STATES.IDLE);
+  const [speakingMessageId, setSpeakingMessageId] = useState(null);
+  const [speechRate, setSpeechRateState] = useState(DEFAULT_SPEECH_RATE);
+  const [availableVoices, setAvailableVoices] = useState(() => getAvailableVoices());
+  const [selectedVoiceURI, setSelectedVoiceURI] = useState('');
+
+  // Analytics state
   const [analytics, setAnalytics] = useState(() => getAnalyticsSummary());
 
   const messagesContainerRef = useRef(null);
@@ -95,6 +117,9 @@ export function useChatbot() {
   const recognizerRef = useRef(null);
   const contextRef = useRef(context);
   const recruiterModeRef = useRef(recruiterMode);
+  const voiceEnabledRef = useRef(voiceEnabled);
+  const speechRateRef = useRef(speechRate);
+  const selectedVoiceURIRef = useRef(selectedVoiceURI);
 
   useEffect(() => {
     contextRef.current = context;
@@ -103,6 +128,26 @@ export function useChatbot() {
   useEffect(() => {
     recruiterModeRef.current = recruiterMode;
   }, [recruiterMode]);
+
+  useEffect(() => {
+    voiceEnabledRef.current = voiceEnabled;
+  }, [voiceEnabled]);
+
+  useEffect(() => {
+    speechRateRef.current = speechRate;
+  }, [speechRate]);
+
+  useEffect(() => {
+    selectedVoiceURIRef.current = selectedVoiceURI;
+  }, [selectedVoiceURI]);
+
+  // Subscribe to browser speechSynthesis voice list updates
+  useEffect(() => {
+    const unsubscribe = subscribeToVoicesChanged((voices) => {
+      setAvailableVoices(voices);
+    });
+    return unsubscribe;
+  }, []);
 
   /**
    * Smoothly scrolls ONLY the internal messages container (never the outer window/page).
@@ -157,7 +202,6 @@ export function useChatbot() {
 
     const rafId = requestAnimationFrame(() => {
       if (messages.length <= 1 && !isTyping) {
-        // Keep initial welcome message & Quick Explore grid positioned cleanly at the top
         if (messagesContainerRef.current) {
           messagesContainerRef.current.scrollTop = 0;
         }
@@ -188,10 +232,131 @@ export function useChatbot() {
       if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
       if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
       if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-      if (recognizerRef.current) recognizerRef.current.stop();
+      if (recognizerRef.current) recognizerRef.current.abort();
       stopSpeaking();
     };
   }, []);
+
+  const stopVoiceOutput = useCallback(() => {
+    stopSpeaking();
+    setSynthesisState(SYNTHESIS_STATES.IDLE);
+    setSpeakingMessageId(null);
+  }, []);
+
+  const stopVoiceInput = useCallback(() => {
+    if (recognizerRef.current) {
+      recognizerRef.current.stop();
+      recognizerRef.current = null;
+    }
+    setIsListening(false);
+    setInterimTranscript('');
+    setRecognitionState((prev) =>
+      prev === RECOGNITION_STATES.ERROR ? prev : RECOGNITION_STATES.IDLE
+    );
+  }, []);
+
+  const speakMessage = useCallback(
+    (text, messageId = null, overrideOptions = {}) => {
+      if (!text || !isSpeechSynthesisSupported()) return false;
+
+      const rateToUse =
+        overrideOptions.rate !== undefined ? overrideOptions.rate : speechRateRef.current;
+      const voiceURIToUse =
+        overrideOptions.voiceURI !== undefined
+          ? overrideOptions.voiceURI
+          : selectedVoiceURIRef.current;
+
+      setSpeakingMessageId(messageId);
+
+      const started = speakText(text, {
+        rate: rateToUse,
+        voiceURI: voiceURIToUse,
+        onStateChange: (nextState) => {
+          setSynthesisState(nextState);
+          if (nextState === SYNTHESIS_STATES.IDLE) {
+            setSpeakingMessageId(null);
+          }
+        },
+        onEnd: () => {
+          setSynthesisState(SYNTHESIS_STATES.IDLE);
+          setSpeakingMessageId(null);
+        },
+      });
+
+      if (!started) {
+        setSynthesisState(SYNTHESIS_STATES.IDLE);
+        setSpeakingMessageId(null);
+      }
+
+      return started;
+    },
+    []
+  );
+
+  const pauseVoiceOutput = useCallback(() => {
+    const paused = pauseSpeaking();
+    if (paused) {
+      setSynthesisState(SYNTHESIS_STATES.PAUSED);
+    }
+    return paused;
+  }, []);
+
+  const resumeVoiceOutput = useCallback(() => {
+    const resumed = resumeSpeaking();
+    if (resumed) {
+      setSynthesisState(SYNTHESIS_STATES.PLAYING);
+    }
+    return resumed;
+  }, []);
+
+  const playVoiceOutput = useCallback(() => {
+    if (!isSpeechSynthesisSupported()) return false;
+
+    if (synthesisState === SYNTHESIS_STATES.PAUSED) {
+      return resumeVoiceOutput();
+    }
+
+    // Find the latest bot message and read it aloud
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i]?.sender === 'bot' && messages[i]?.text) {
+        return speakMessage(messages[i].text, messages[i].id);
+      }
+    }
+    return false;
+  }, [messages, synthesisState, resumeVoiceOutput, speakMessage]);
+
+  const setSpeechRate = useCallback(
+    (nextRate) => {
+      const clamped = clampSpeechRate(nextRate);
+      setSpeechRateState(clamped);
+      speechRateRef.current = clamped;
+
+      // If currently playing a message, restart with the updated speech rate
+      if (synthesisState === SYNTHESIS_STATES.PLAYING && speakingMessageId) {
+        const activeMsg = messages.find((m) => m.id === speakingMessageId);
+        if (activeMsg?.text) {
+          speakMessage(activeMsg.text, activeMsg.id, { rate: clamped });
+        }
+      }
+    },
+    [messages, speakingMessageId, synthesisState, speakMessage]
+  );
+
+  const handleSelectVoice = useCallback(
+    (nextVoiceURI) => {
+      const uri = typeof nextVoiceURI === 'string' ? nextVoiceURI : '';
+      setSelectedVoiceURI(uri);
+      selectedVoiceURIRef.current = uri;
+
+      if (synthesisState === SYNTHESIS_STATES.PLAYING && speakingMessageId) {
+        const activeMsg = messages.find((m) => m.id === speakingMessageId);
+        if (activeMsg?.text) {
+          speakMessage(activeMsg.text, activeMsg.id, { voiceURI: uri });
+        }
+      }
+    },
+    [messages, speakingMessageId, synthesisState, speakMessage]
+  );
 
   const handleOpen = useCallback(() => {
     if (closeTimerRef.current) {
@@ -206,16 +371,13 @@ export function useChatbot() {
   const handleClose = useCallback(() => {
     if (!isOpen || isClosing) return;
     setIsClosing(true);
-    if (recognizerRef.current) {
-      recognizerRef.current.stop();
-      setIsListening(false);
-    }
-    stopSpeaking();
+    stopVoiceInput();
+    stopVoiceOutput();
     closeTimerRef.current = setTimeout(() => {
       setIsOpen(false);
       setIsClosing(false);
     }, 210);
-  }, [isOpen, isClosing]);
+  }, [isOpen, isClosing, stopVoiceInput, stopVoiceOutput]);
 
   const handleToggle = useCallback(() => {
     if (isOpen && !isClosing) {
@@ -272,6 +434,9 @@ export function useChatbot() {
     (rawText, source = 'text') => {
       const trimmed = typeof rawText === 'string' ? rawText.trim() : '';
       if (!trimmed || isTyping) return;
+
+      // Cancel any previous speech when a new query/response cycle starts
+      stopVoiceOutput();
 
       setError(null);
       setShowHistory(false);
@@ -349,8 +514,8 @@ export function useChatbot() {
           });
           setAnalytics(getAnalyticsSummary());
 
-          if (voiceEnabled) {
-            speakText(result.reply);
+          if (voiceEnabledRef.current) {
+            speakMessage(result.reply, botMessage.id);
           }
         } catch (err) {
           console.error('[Jatin AI 3.0] Failed to generate response:', err);
@@ -375,7 +540,7 @@ export function useChatbot() {
         }
       }, 480);
     },
-    [isTyping, voiceEnabled]
+    [isTyping, stopVoiceOutput, speakMessage]
   );
 
   const retryLastMessage = useCallback(() => {
@@ -410,7 +575,8 @@ export function useChatbot() {
       clearTimeout(typingTimerRef.current);
       typingTimerRef.current = null;
     }
-    stopSpeaking();
+    stopVoiceInput();
+    stopVoiceOutput();
     setIsTyping(false);
     setError(null);
     setShowHistory(false);
@@ -429,57 +595,106 @@ export function useChatbot() {
     } catch {
       inputRef.current?.focus();
     }
-  }, [scrollToTop]);
+  }, [scrollToTop, stopVoiceInput, stopVoiceOutput]);
 
   const toggleVoiceOutput = useCallback(() => {
     setVoiceEnabled((prev) => {
       const next = !prev;
+      voiceEnabledRef.current = next;
       if (!next) {
-        stopSpeaking();
+        stopVoiceOutput();
       }
       return next;
     });
-  }, []);
+  }, [stopVoiceOutput]);
 
-  const speakMessage = useCallback((text) => {
-    if (!text) return;
-    speakText(text);
-  }, []);
+  const disableVoice = useCallback(() => {
+    setVoiceEnabled(false);
+    voiceEnabledRef.current = false;
+    stopVoiceOutput();
+    stopVoiceInput();
+  }, [stopVoiceOutput, stopVoiceInput]);
 
-  const toggleVoiceInput = useCallback(() => {
+  const startVoiceInput = useCallback(() => {
     if (!isSpeechRecognitionSupported()) {
-      setError('Voice input is not supported in this browser. Please type your question below.');
-      return;
+      setRecognitionState(RECOGNITION_STATES.UNSUPPORTED);
+      setError(
+        'Voice input is not supported in this browser. Please type your question below.'
+      );
+      return false;
     }
 
-    if (isListening && recognizerRef.current) {
-      recognizerRef.current.stop();
-      setIsListening(false);
-      return;
-    }
-
+    // Stop any ongoing speech synthesis before activating the microphone
+    stopVoiceOutput();
     setError(null);
+    setMicPermissionDenied(false);
+    setInterimTranscript('');
+
     const recognizer = createSpeechRecognizer({
+      onStart: () => {
+        setIsListening(true);
+        setRecognitionState(RECOGNITION_STATES.LISTENING);
+      },
+      onStateChange: (nextState) => {
+        setRecognitionState(nextState);
+        setIsListening(
+          nextState === RECOGNITION_STATES.LISTENING ||
+            nextState === RECOGNITION_STATES.RECOGNIZING
+        );
+      },
+      onInterimResult: (interim) => {
+        setInterimTranscript(interim);
+        setRecognitionState(RECOGNITION_STATES.RECOGNIZING);
+      },
       onResult: (transcript) => {
         setIsListening(false);
+        setInterimTranscript('');
+        setRecognitionState(RECOGNITION_STATES.IDLE);
         if (transcript && transcript.trim()) {
           sendMessage(transcript.trim(), 'voice');
         }
       },
-      onError: () => {
+      onError: (mappedError) => {
         setIsListening(false);
-        setError('Could not capture voice audio. Please check microphone permissions or type your question.');
+        setInterimTranscript('');
+        setRecognitionState(RECOGNITION_STATES.ERROR);
+        if (mappedError?.isPermissionDenied) {
+          setMicPermissionDenied(true);
+        }
+        if (mappedError?.message) {
+          setError(mappedError.message);
+        } else {
+          setError(
+            'Could not capture voice audio. Please check microphone permissions or type your question.'
+          );
+        }
       },
       onEnd: () => {
         setIsListening(false);
+        setInterimTranscript('');
+        setRecognitionState((prev) =>
+          prev === RECOGNITION_STATES.ERROR ? prev : RECOGNITION_STATES.IDLE
+        );
       },
     });
 
     if (recognizer && recognizer.start()) {
       recognizerRef.current = recognizer;
       setIsListening(true);
+      setRecognitionState(RECOGNITION_STATES.LISTENING);
+      return true;
     }
-  }, [isListening, sendMessage]);
+
+    return false;
+  }, [sendMessage, stopVoiceOutput]);
+
+  const toggleVoiceInput = useCallback(() => {
+    if (isListening) {
+      stopVoiceInput();
+      return;
+    }
+    startVoiceInput();
+  }, [isListening, stopVoiceInput, startVoiceInput]);
 
   return {
     config: chatbotKnowledge.config,
@@ -506,8 +721,21 @@ export function useChatbot() {
     error,
     clearError,
     retryLastMessage,
+    // Voice Input & Output state and controls
     voiceEnabled,
     isListening,
+    recognitionState,
+    interimTranscript,
+    micPermissionDenied,
+    synthesisState,
+    speakingMessageId,
+    speechRate,
+    setSpeechRate,
+    speechRateOptions: SPEECH_RATE_OPTIONS,
+    availableVoices,
+    selectedVoiceURI,
+    setSelectedVoiceURI: handleSelectVoice,
+    voicePrivacyNotice: VOICE_PRIVACY_NOTICE,
     speechRecognitionSupported: isSpeechRecognitionSupported(),
     speechSynthesisSupported: isSpeechSynthesisSupported(),
     messagesContainerRef,
@@ -519,8 +747,15 @@ export function useChatbot() {
     sendMessage,
     handleClearChat,
     toggleVoiceOutput,
+    disableVoice,
+    startVoiceInput,
+    stopVoiceInput,
     toggleVoiceInput,
     speakMessage,
+    playVoiceOutput,
+    pauseVoiceOutput,
+    resumeVoiceOutput,
+    stopVoiceOutput,
   };
 }
 

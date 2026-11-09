@@ -252,7 +252,7 @@ export function generateResponse(
         intent: 'bot_help',
         reply:
           `I'm **${kb.config?.botName || 'Jatin AI'}** (v${kb.config?.version || '3.0'}) — a custom, **API-free natural-language question matching assistant** built for **${intro.name}**.\n\n` +
-          `*Note: I am a deterministic rule-based and knowledge-graph engine (not an LLM or unrestricted reasoning model). I answer strictly from Jatin's verified portfolio data.*\n\n` +
+          `*Note: I am a deterministic rule-based and knowledge-graph engine (not an LLM or unrestricted reasoning model). I answer strictly from Jatin's verified portfolio data. Optional browser-native voice input uses your browser's speech recognition service (which may require internet access) and never records or stores raw audio.*\n\n` +
           `Here are topics you can ask me about:\n` +
           `• **Introduction:** Who is Jatin & what are his interests?\n` +
           `• **Skills & Languages:** Programming languages, AI/ML & web stack\n` +
