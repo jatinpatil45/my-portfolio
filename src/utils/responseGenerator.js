@@ -760,7 +760,10 @@ export function generateResponse(
       return finalize({
         intent: 'github_link',
         reply:
-          `🐙 **Jatin's GitHub Profile:**\n${contact.github}\n\n` +
+          `🐙 **Jatin's GitHub Profile & Verified Repositories:**\n` +
+          `• **GitHub Profile:** ${contact.github}\n` +
+          `• **AI Study Assistant (StudyMate AI):** https://github.com/jatinpatil45/ai-study-assistant\n` +
+          `• **AI Web Clone Builder:** https://github.com/jatinpatil45/Ai-Web-clone-builder\n\n` +
           `Check it out to explore his AI/ML, Data Science, and Full-Stack repositories!`,
       });
 
