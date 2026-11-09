@@ -34,12 +34,48 @@ export const RELEVANT_TOPICS = [
 ];
 
 export const RECRUITER_SUGGESTIONS = [
-  'Why should we hire Jatin?',
-  "Show me Jatin's projects",
-  "What are Jatin's technical skills?",
-  'What certifications does Jatin have?',
+  'Generate professional candidate summary',
+  'Technical profile overview',
+  'Project portfolio summary',
+  'Skills grouped by category',
+  'Certifications and achievements summary',
   'How can I contact Jatin?',
 ];
+
+/**
+ * Builds a strictly verified Candidate Summary Card object from the knowledge base.
+ * Never claims professional corporate employment, industry experience, or unverified metrics.
+ */
+export function buildCandidateSummaryCard(kb = defaultKnowledge) {
+  const intro = kb.personalIntroduction || {};
+  const skills = kb.technicalSkills || {};
+  const contact = kb.contactInfo || {};
+  const certCount = (kb.certifications || []).length;
+
+  return {
+    name: intro.name || 'Jatin Patil',
+    fullName: intro.fullName || 'Jatin Narayanbhai Patil',
+    academicStatus: 'B.E. Computer Engineering (3rd Year, Sem 6 — Pursuing)',
+    institution: 'UPL University of Sustainable Technology',
+    focusArea: 'Data Science, AI/ML & Full-Stack Web Development',
+    location: intro.location || contact.location || 'Gujarat, India',
+    campusRole: 'Google Student Ambassador',
+    coreLanguages: (skills.coreProgramming || ['Python', 'JavaScript', 'TypeScript', 'Java']).join(', '),
+    additionalLanguages: (skills.additionalLanguages || ['C', 'C++', 'SQL', 'HTML/CSS']).join(', '),
+    credentialsSummary: `${certCount || 8} Course Certifications & 2 Hackathon Participation Certificates`,
+    experienceDisclosure:
+      'Undergraduate student — no formal corporate employment or commercial industry experience is claimed. Practical background is built through academic coursework, independent projects, hackathons, and campus leadership.',
+    availability:
+      contact.availability ||
+      'Open to internships, project collaborations, and opportunities in Data Science, AI/ML, Cybersecurity, and Web Development.',
+    links: {
+      portfolio: contact.portfolio || PORTFOLIO_LINKS.portfolio,
+      github: contact.github || PORTFOLIO_LINKS.github,
+      linkedin: contact.linkedin || PORTFOLIO_LINKS.linkedin,
+      email: contact.email || 'jatinpatil2233@gmail.com',
+    },
+  };
+}
 
 /**
  * Removes duplicate bullet lines within a response while preserving paragraph structure.
@@ -275,7 +311,36 @@ export function generateResponse(
           `• **Portfolio:** ${contact.portfolio}`,
       });
 
-    case 'interests_learning':
+    case 'interests_learning': {
+      if (matchResult?.recruiterTopic === 'ai_ml_interests') {
+        return finalize({
+          intent: 'interests_learning',
+          cards: {
+            type: 'projects',
+            items: projectList
+              .filter((p) => p.category === 'AI/ML' || p.category === 'Deep Learning')
+              .slice(0, 2),
+          },
+          reply:
+            `🤖 **${intro.name}'s AI & Machine Learning Focus:**\n\n` +
+            `• **Verified AI/ML Toolkit:** TensorFlow, OpenCV, Scikit-Learn, Pandas, NumPy, Deep Learning, Computer Vision, Linear Regression, Prompt Engineering.\n` +
+            `• **Applied AI/ML Projects:** **AI Study Assistant (StudyMate AI)**, **Smart City Traffic Analyzer** (Computer Vision), and **AI-Powered Sales Forecaster** (Predictive Modeling).\n` +
+            `• **AI Credentials:** AI Readiness Milestone (IICT, 2026), Google AI Tech Partner Cert (Google/Coursera, 2025), and Azure Cognitive Services Vision Workshop (Microsoft Learn, 2025).\n` +
+            `• **Projects Section:** ${PORTFOLIO_LINKS.projects}`,
+        });
+      }
+
+      if (matchResult?.recruiterTopic === 'cybersecurity_learning') {
+        return finalize({
+          intent: 'interests_learning',
+          reply:
+            `🛡️ **${intro.name}'s Cybersecurity Learning:**\n\n` +
+            `• **Current Learning Area:** Jatin is currently learning **Google Cloud Cybersecurity** alongside his B.E. in Computer Engineering.\n` +
+            `• **Verification Note:** Cybersecurity is an active learning interest rather than claimed commercial security employment.\n` +
+            `• **Skills Section:** ${PORTFOLIO_LINKS.skills}`,
+        });
+      }
+
       return finalize({
         intent: 'interests_learning',
         reply:
@@ -285,6 +350,7 @@ export function generateResponse(
           `• **Campus Activity:** ${(intro.activities || []).join(', ')}\n` +
           `• **Skills Section:** ${PORTFOLIO_LINKS.skills}`,
       });
+    }
 
     case 'education': {
       const verifiedEdu = eduList.filter((item) => item.verificationStatus !== 'incomplete');
@@ -326,6 +392,55 @@ export function generateResponse(
     }
 
     case 'skills': {
+      if (matchResult?.recruiterTopic === 'data_science_knowledge') {
+        const dsProjects = projectList.filter(
+          (p) => p.category === 'Data Science' || (p.tech || []).includes('Python')
+        );
+        return finalize({
+          intent: 'skills',
+          cards: { type: 'projects', items: dsProjects.slice(0, 2) },
+          reply:
+            `📊 **${intro.name}'s Data Science Knowledge:**\n\n` +
+            `• **Academic Focus:** B.E. Computer Engineering (3rd Year, Sem 6) with academic focus in **Data Science**.\n` +
+            `• **Data Science Toolkit:** Python, Pandas, NumPy, Scikit-Learn, Linear Regression, SQL.\n` +
+            `• **Verified Certification:** *The Ultimate Job Ready Data Science Course* — CodeWithHarry (2025).\n` +
+            `• **Applied Projects:** **AI-Powered Sales Forecaster** (Python, Pandas, Scikit-Learn, Linear Regression) & **Smart City Traffic Analyzer** (Python, TensorFlow, OpenCV).\n` +
+            `• **Skills Section:** ${PORTFOLIO_LINKS.skills}`,
+        });
+      }
+
+      if (matchResult?.recruiterTopic === 'web_development_skills') {
+        const webProjects = projectList.filter(
+          (p) => p.category === 'Web' || (p.tech || []).includes('React')
+        );
+        return finalize({
+          intent: 'skills',
+          cards: { type: 'projects', items: webProjects.slice(0, 2) },
+          reply:
+            `🌐 **${intro.name}'s Web Development Skills:**\n\n` +
+            `• **Frontend & UI:** React, TypeScript, JavaScript, HTML5, CSS3, Tailwind CSS, Framer Motion.\n` +
+            `• **Backend & Databases:** Node.js, Firebase, MongoDB, SQL.\n` +
+            `• **Verified Web Projects:** **AI Study Assistant (StudyMate AI)**, **AI Web Clone Builder**, **MERN Stack Dashboard**, and **Portfolio Engine**.\n` +
+            `• **Certification:** *Complete 2026 Web Dev Bootcamp* — CodeWithHarry (2025).\n` +
+            `• **Projects Section:** ${PORTFOLIO_LINKS.projects}`,
+        });
+      }
+
+      if (matchResult?.recruiterTopic === 'skills_grouped_by_category') {
+        return finalize({
+          intent: 'skills',
+          reply:
+            `💻 **${intro.name}'s Technical Skills Grouped by Category:**\n\n` +
+            `• **Core Programming Languages:** ${(skills.coreProgramming || []).join(', ')}\n` +
+            `• **Additional & Query Languages:** ${(skills.additionalLanguages || []).join(', ')}\n` +
+            `• **Web Development:** ${(skills.webDevelopment || []).join(', ')}\n` +
+            `• **Data Science & AI/ML:** ${(skills.dataScienceAndAI || []).join(', ')}\n` +
+            `• **Cybersecurity & Cloud (Learning):** ${(skills.cybersecurityAndCloud || []).join(', ')}\n` +
+            `• **Tools & Platforms:** ${(skills.toolsAndPlatforms || []).join(', ')}\n\n` +
+            `Explore the full Tech Arsenal at ${PORTFOLIO_LINKS.skills}`,
+        });
+      }
+
       const matchedSkill = matchResult?.matchedSkill;
       let prefix = '';
       let skillProjectCards = null;

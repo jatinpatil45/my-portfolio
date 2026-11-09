@@ -137,8 +137,8 @@ export function extractMentionedSkills(normalized, tokenSet, kb = defaultKnowled
 
 /**
  * Detects whether the user is asking about a known unverified/incomplete fact
- * (such as university CGPA/GPA or personal phone/WhatsApp number) so the engine
- * never invents missing facts.
+ * (such as university CGPA/GPA, personal phone/WhatsApp number, or corporate employment/years of experience)
+ * so the engine never invents missing facts.
  */
 export function detectUnverifiedFactQuery(normalized, tokenSet) {
   const cgpaTerms = ['cgpa', 'gpa', 'spi', 'cpi', 'college marks', 'university grades', 'semester marks'];
@@ -149,6 +149,176 @@ export function detectUnverifiedFactQuery(normalized, tokenSet) {
   const phoneTerms = ['phone', 'mobile', 'whatsapp', 'phone number', 'contact number', 'mobile number', 'cellphone'];
   if (phoneTerms.some((term) => hasTerm(normalized, tokenSet, term))) {
     return 'phone';
+  }
+
+  const employmentTerms = [
+    'years of experience',
+    'how many years',
+    'industry experience',
+    'professional employment',
+    'employment experience',
+    'corporate experience',
+    'employment history',
+    'work history',
+    'previous companies',
+    'companies worked',
+  ];
+  if (employmentTerms.some((term) => hasTerm(normalized, tokenSet, term))) {
+    return 'employment';
+  }
+
+  return null;
+}
+
+/**
+ * Detects structured Recruiter Mode category queries, quick actions, and executive brief requests.
+ */
+export function detectRecruiterTopic(normalized, tokenSet) {
+  if (
+    hasTerm(normalized, tokenSet, 'generate professional candidate summary') ||
+    hasTerm(normalized, tokenSet, 'professional candidate summary') ||
+    hasTerm(normalized, tokenSet, 'technical profile overview') ||
+    normalized === 'candidate summary'
+  ) {
+    return {
+      intent: 'recruiter_info',
+      ruleId: 'recruiter_info',
+      recruiterTopic: 'technical_profile_overview',
+    };
+  }
+
+  if (
+    hasTerm(normalized, tokenSet, 'project portfolio summary') ||
+    hasTerm(normalized, tokenSet, 'projects and technologies used') ||
+    normalized === 'explore projects'
+  ) {
+    return {
+      intent: 'projects',
+      ruleId: 'projects',
+      recruiterTopic: 'project_portfolio_summary',
+    };
+  }
+
+  if (
+    hasTerm(normalized, tokenSet, 'skills grouped by category') ||
+    normalized === 'show technical skills'
+  ) {
+    return {
+      intent: 'skills',
+      ruleId: 'skills',
+      recruiterTopic: 'skills_grouped_by_category',
+    };
+  }
+
+  if (
+    hasTerm(normalized, tokenSet, 'certifications and achievements summary') ||
+    hasTerm(normalized, tokenSet, 'certifications and achievements')
+  ) {
+    return {
+      intent: 'recruiter_info',
+      ruleId: 'recruiter_info',
+      recruiterTopic: 'certifications_achievements_summary',
+    };
+  }
+
+  if (hasTerm(normalized, tokenSet, 'candidate introduction')) {
+    return {
+      intent: 'about',
+      ruleId: 'about',
+      recruiterTopic: 'candidate_introduction',
+    };
+  }
+
+  if (
+    hasTerm(normalized, tokenSet, 'data science knowledge') ||
+    hasTerm(normalized, tokenSet, 'jatins data science')
+  ) {
+    return {
+      intent: 'skills',
+      ruleId: 'skills',
+      recruiterTopic: 'data_science_knowledge',
+    };
+  }
+
+  if (
+    hasTerm(normalized, tokenSet, 'ai and machine learning interests') ||
+    hasTerm(normalized, tokenSet, 'ai and ml interests') ||
+    hasTerm(normalized, tokenSet, 'machine learning interests')
+  ) {
+    return {
+      intent: 'interests_learning',
+      ruleId: 'interestsAndLearning',
+      recruiterTopic: 'ai_ml_interests',
+    };
+  }
+
+  if (
+    hasTerm(normalized, tokenSet, 'web development skills') ||
+    hasTerm(normalized, tokenSet, 'jatins web development')
+  ) {
+    return {
+      intent: 'skills',
+      ruleId: 'skills',
+      recruiterTopic: 'web_development_skills',
+    };
+  }
+
+  if (
+    hasTerm(normalized, tokenSet, 'cybersecurity learning') ||
+    hasTerm(normalized, tokenSet, 'learning in cybersecurity') ||
+    hasTerm(normalized, tokenSet, 'google cloud cybersecurity')
+  ) {
+    return {
+      intent: 'interests_learning',
+      ruleId: 'interestsAndLearning',
+      recruiterTopic: 'cybersecurity_learning',
+    };
+  }
+
+  if (
+    hasTerm(normalized, tokenSet, 'google student ambassador activities') ||
+    hasTerm(normalized, tokenSet, 'student ambassador activities')
+  ) {
+    return {
+      intent: 'achievements',
+      ruleId: 'achievements',
+      recruiterTopic: 'gsa_activities',
+    };
+  }
+
+  if (normalized === 'view achievements') {
+    return {
+      intent: 'achievements',
+      ruleId: 'achievements',
+      recruiterTopic: 'achievements',
+    };
+  }
+
+  if (
+    normalized === 'view github' ||
+    hasTerm(normalized, tokenSet, 'github repositories')
+  ) {
+    return {
+      intent: 'github_link',
+      ruleId: 'github',
+      recruiterTopic: 'github_repositories',
+    };
+  }
+
+  if (normalized === 'view linkedin') {
+    return {
+      intent: 'linkedin_link',
+      ruleId: 'linkedin',
+      recruiterTopic: 'linkedin_profile',
+    };
+  }
+
+  if (normalized === 'contact candidate') {
+    return {
+      intent: 'contact',
+      ruleId: 'contact',
+      recruiterTopic: 'contact_information',
+    };
   }
 
   return null;
@@ -293,6 +463,41 @@ export function matchIntent(userInput, knowledge = defaultKnowledge, context = n
       confidence: 0.92,
       confidenceLevel: 'high',
       unverifiedTopic: 'phone',
+      matchedProject: null,
+      matchedProjects: [],
+      matchedSkill: null,
+      matchedSkills: [],
+      followUpType: null,
+      normalized,
+      tokens,
+    };
+  }
+  if (unverifiedTopic === 'employment') {
+    return {
+      intent: 'experience',
+      ruleId: 'experience',
+      confidence: 0.94,
+      confidenceLevel: 'high',
+      unverifiedTopic: 'employment',
+      matchedProject: null,
+      matchedProjects: [],
+      matchedSkill: null,
+      matchedSkills: [],
+      followUpType: null,
+      normalized,
+      tokens,
+    };
+  }
+
+  // 0.5. Check explicit Recruiter Mode categories, quick actions, and executive brief requests
+  const recruiterTopicMatch = detectRecruiterTopic(normalized, tokenSet);
+  if (recruiterTopicMatch) {
+    return {
+      intent: recruiterTopicMatch.intent,
+      ruleId: recruiterTopicMatch.ruleId,
+      recruiterTopic: recruiterTopicMatch.recruiterTopic,
+      confidence: 0.97,
+      confidenceLevel: 'high',
       matchedProject: null,
       matchedProjects: [],
       matchedSkill: null,
