@@ -467,6 +467,8 @@ export const INTENTS = [
       'azure cognitive',
       'ai readiness',
       'ai skills house',
+      'machine learning using python',
+      'simplilearn skillup',
     ],
     keywords: [
       'certification',
@@ -486,6 +488,10 @@ export const INTENTS = [
       'azure',
       'coursera',
       'iict',
+      'simplilearn',
+      'skillup',
+      '10275986',
+      'machine learning using python',
     ],
     defaultSuggestions: [
       "What are Jatin's achievements?",

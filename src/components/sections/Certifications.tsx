@@ -97,6 +97,15 @@ const Certifications = () => {
       date: 'November 7, 2026',
       certificateId: 'CWH-THE-ULTIMATE-WEB-DEV-COURSE-FHH3OS1Z',
     },
+    {
+      id: 9,
+      title: 'Machine Learning Using Python',
+      organization: 'Simplilearn SkillUp',
+      image: '/images/cert-simplilearn-ml-python.png',
+      alt: 'Machine Learning Using Python Certificate',
+      date: 'May 27, 2026',
+      certificateId: '10275986',
+    },
   ];
 
   return (

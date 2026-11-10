@@ -124,6 +124,23 @@ describe('Jatin AI - Rule-Based Matcher & Knowledge Base', () => {
     expect(certRes.intent).toBe('certifications');
     expect(certRes.reply).toContain('CodeWithHarry');
     expect(certRes.reply).toContain('Microsoft Learn');
+    expect(certRes.reply).toContain('Simplilearn SkillUp');
+    expect(certRes.reply).toContain('Machine Learning Using Python');
+
+    const simplilearnRes = matchChatbotResponse('Tell me about Simplilearn SkillUp certificate');
+    expect(simplilearnRes.intent).toBe('certifications');
+    expect(simplilearnRes.reply).toContain('Machine Learning Using Python');
+
+    const mlCertTitleRes = matchChatbotResponse('Machine Learning Using Python');
+    expect(mlCertTitleRes.intent).toBe('certifications');
+    expect(mlCertTitleRes.reply).toContain('Simplilearn SkillUp');
+
+    const mlCertEntry = chatbotKnowledge.certifications.find(
+      (c) => c.id === 'cert:simplilearn-ml-python'
+    );
+    expect(mlCertEntry).toBeDefined();
+    expect(mlCertEntry?.certificateId).toBe('10275986');
+    expect(mlCertEntry?.date).toBe('May 27, 2026');
 
     const achRes = matchChatbotResponse('is jatin a google student ambassador?');
     expect(achRes.intent).toBe('achievements');
@@ -437,7 +454,11 @@ describe('Jatin AI 3.0 Knowledge Graph, Structured Schema, Analytics & Voice', (
     expect(gsaActivities.length).toBeGreaterThan(0);
 
     const pythonCerts = graph.getCertificationsBySkill('Python');
-    expect(pythonCerts.length).toBeGreaterThanOrEqual(1);
+    expect(pythonCerts.length).toBeGreaterThanOrEqual(2);
+    expect(pythonCerts.some((c) => c.title === 'Machine Learning Using Python')).toBe(true);
+
+    const mlCerts = graph.getCertificationsBySkill('Machine Learning');
+    expect(mlCerts.some((c) => c.issuer === 'Simplilearn SkillUp')).toBe(true);
 
     const relatedToStudyMate = graph.getRelatedProjects('AI Study Assistant (StudyMate AI)');
     expect(relatedToStudyMate.length).toBeGreaterThan(0);

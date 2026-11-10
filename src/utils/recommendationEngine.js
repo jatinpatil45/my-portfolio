@@ -156,7 +156,7 @@ const SECTION_CATALOG = [
     title: 'Verified Certifications',
     link: PORTFOLIO_LINKS.certifications,
     question: 'What certifications does Jatin have?',
-    reason: 'See 8 verified credentials from Google, Microsoft Learn, IICT, and CodeWithHarry.',
+    reason: 'See 9 verified credentials from Google, Microsoft Learn, IICT, CodeWithHarry, Simplilearn SkillUp, and LetsUpgrade.',
   },
   {
     id: 'hackathons',

@@ -53,7 +53,7 @@ const STARTER_CARDS = [
   {
     id: 'starter-certs',
     label: 'Verified Credentials',
-    sub: '8 certificates & 2 hackathons',
+    sub: '9 certificates & 2 hackathons',
     query: 'What certifications does Jatin have?',
     icon: Award,
   },

@@ -62,7 +62,7 @@ export function buildCandidateSummaryCard(kb = defaultKnowledge) {
     campusRole: 'Google Student Ambassador',
     coreLanguages: (skills.coreProgramming || ['Python', 'JavaScript', 'TypeScript', 'Java']).join(', '),
     additionalLanguages: (skills.additionalLanguages || ['C', 'C++', 'SQL', 'HTML/CSS']).join(', '),
-    credentialsSummary: `${certCount || 8} Course Certifications & 2 Hackathon Participation Certificates`,
+    credentialsSummary: `${certCount || 9} Course Certifications & 2 Hackathon Participation Certificates`,
     experienceDisclosure:
       'Undergraduate student — no formal corporate employment or commercial industry experience is claimed. Practical background is built through academic coursework, independent projects, hackathons, and campus leadership.',
     availability:
@@ -196,7 +196,7 @@ function buildRecruiterHighlight(intent, kb = defaultKnowledge) {
       return 'Recruiter Takeaway: 3rd Year (Sem 6) B.E. Computer Engineering student specializing in Data Science.';
     case 'certifications':
     case 'achievements':
-      return 'Recruiter Takeaway: 8 verified credentials (Google, Microsoft Learn, IICT, CodeWithHarry) + Google Student Ambassador.';
+      return `Recruiter Takeaway: ${(kb.certifications || []).length || 9} verified credentials (Google, Microsoft Learn, IICT, CodeWithHarry, Simplilearn SkillUp) + Google Student Ambassador.`;
     default:
       return `Recruiter Takeaway: ${contact.availability || 'Open to internships and engineering roles.'}`;
   }
@@ -325,7 +325,7 @@ export function generateResponse(
             `🤖 **${intro.name}'s AI & Machine Learning Focus:**\n\n` +
             `• **Verified AI/ML Toolkit:** TensorFlow, OpenCV, Scikit-Learn, Pandas, NumPy, Deep Learning, Computer Vision, Linear Regression, Prompt Engineering.\n` +
             `• **Applied AI/ML Projects:** **AI Study Assistant (StudyMate AI)**, **Smart City Traffic Analyzer** (Computer Vision), and **AI-Powered Sales Forecaster** (Predictive Modeling).\n` +
-            `• **AI Credentials:** AI Readiness Milestone (IICT, 2026), Google AI Tech Partner Cert (Google/Coursera, 2025), and Azure Cognitive Services Vision Workshop (Microsoft Learn, 2025).\n` +
+            `• **AI Credentials:** Foundation Course on AI Readiness (IICT, Sep 2026), Use AI as a Creative or Expert Partner (Google/Coursera, Aug 2026), Machine Learning Using Python (Simplilearn SkillUp, May 2026), and Build a Computer Vision App with Azure Cognitive Services (Microsoft Learn, Sep 2024).\n` +
             `• **Projects Section:** ${PORTFOLIO_LINKS.projects}`,
         });
       }
@@ -681,7 +681,7 @@ export function generateResponse(
           `• **Programming Languages:** Python, JavaScript, TypeScript, Java, C, C++, SQL, HTML/CSS.\n` +
           `• **Technical Stack:** React, Node.js, TensorFlow, OpenCV, Pandas, NumPy, Scikit-Learn, Tailwind CSS, Firebase, MongoDB (plus currently learning Google Cloud Cybersecurity).\n` +
           `• **Key Portfolio Projects:** AI Study Assistant (StudyMate AI), AI Web Clone Builder, Smart City Traffic Analyzer, and AI-Powered Sales Forecaster.\n` +
-          `• **Leadership & Credentials:** Google Student Ambassador, 8 verified certifications (Google/Coursera, Microsoft Learn, IICT, CodeWithHarry, LetsUpgrade), and 2 national hackathon participation certificates.\n` +
+          `• **Leadership & Credentials:** Google Student Ambassador, ${certList.length || 9} verified certifications (Google/Coursera, Microsoft Learn, IICT, CodeWithHarry, Simplilearn SkillUp, LetsUpgrade), and 2 national hackathon participation certificates.\n` +
           `• **Availability:** ${contact.availability}\n` +
           `• **Direct Contact:** mailto:${contact.email} | LinkedIn: ${contact.linkedin} | GitHub: ${contact.github}`,
       });
